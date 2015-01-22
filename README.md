@@ -9,9 +9,7 @@ EasyExPlot is a small Python tool that helps you plot your experiments with diff
 Let's assume we have some experiment, which is nothing more than a real-valued function with different parameters.
 
 
-```
-#!python
-
+```python
 def my_experiment(x=0, f='sin', shift=False):
     # calculate some stuf
     # ...
@@ -37,7 +35,7 @@ Suspecting that the function is noisy, we let EasyExPlot evaluate the function m
 
 ```
 #!python
-eep.plot(my_experiment, x=range(10), f='sin', repetitions=50)
+eep.plot(my_experiment, x=range(10), f='sin', repetitions=100)
 ```
 
 <img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163542_00.png" width="640px">
@@ -46,7 +44,7 @@ Nice, we have mean and standard deviation now! But how do the other parameters (
 
 ```
 #!python
-eep.plot(my_experiment, x=range(10), f=['sin', 'cos'], shift=[False, True], repetitions=50)
+eep.plot(my_experiment, x=range(10), f=['sin', 'cos'], shift=[False, True], repetitions=100)
 ```
 
 <img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163547_00.png" width="640px">
@@ -55,7 +53,7 @@ That was easy. But what if the experiment doesn't have a numeric parameter like 
 
 ```
 #!python
-eep.plot(my_experiment, f=['sin', 'cos'], shift=[False, True], repetitions=50)
+eep.plot(my_experiment, f=['sin', 'cos'], shift=[False, True], repetitions=100)
 ```
 
 <img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163600_00.png" width="640px">
