@@ -405,7 +405,7 @@ def list_results():
 
 
 
-def my_experiment(x, y=0, f='sin', shift=False):#, dummy=None):
+def my_experiment(x, y=0, f='sin', shift=False):
     """
     A simple example for an experiment function.
     """
@@ -431,7 +431,7 @@ def main():
     save_plot = False
 
     # regular call of the experiment    
-    print my_experiment(x=0, y=0, f='sin', shift=False)
+    print my_experiment(x=0, f='sin', shift=False)
 
     # plot with varying x
     plot(my_experiment, x=range(10), f='sin', shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
@@ -448,6 +448,9 @@ def main():
     # bar plot for x=0 with varying f and shift (as well as forced order of parameters)
     plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
     plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], argument_order=['f'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
+    
+    # 2d plot
+    plot(my_experiment, x=range(10), y=range(10), repetitions=10, show_plot=show_plot, save_plot=save_plot)
 
 
 
