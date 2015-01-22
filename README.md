@@ -31,7 +31,7 @@ eep.plot(my_experiment, x=range(10), f='sin')
 
 EasyExPlot automatically recognizes that parameter *x* is the one to iterate over and produces the following plot:
 
-![20150122_141907_00.png](https://bitbucket.org/repo/nX7gry/images/2999576315-20150122_141907_00.png =400x)
+![20150122_163422_00.png](https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163422_00.png =400x)
 
 Suspecting that the function is noisy, we let EasyExPlot evaluate the function multiple times with the argument *repetitions*:
 
