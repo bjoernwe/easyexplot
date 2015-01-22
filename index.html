@@ -59,6 +59,8 @@ eep.plot(my_experiment, <span class="pl-vpf">x</span><span class="pl-k">=</span>
 
 <p><img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163422_00.png" width="640px"></p>
 
+<p>Note how all arguments are automatically included in the plot to make the comparison of different plots easier.</p>
+
 <p>Suspecting that the function is noisy, we let EasyExPlot evaluate the function multiple times with the argument <em>repetitions</em>:</p>
 
 <div class="highlight highlight-python"><pre>eep.plot(my_experiment, <span class="pl-vpf">x</span><span class="pl-k">=</span><span class="pl-s3">range</span>(<span class="pl-c1">10</span>), <span class="pl-vpf">f</span><span class="pl-k">=</span><span class="pl-s1"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>, <span class="pl-vpf">repetitions</span><span class="pl-k">=</span><span class="pl-c1">100</span>)</pre></div>
@@ -67,14 +69,15 @@ eep.plot(my_experiment, <span class="pl-vpf">x</span><span class="pl-k">=</span>
 
 <p>Nice, we have mean and standard deviation now! But how do the other parameters (<em>f</em> and <em>shift</em>) influence the result of the experiment? Again, we replace the arguments in question with lists of possible values and EasyExPlot takes care of running the experiment for different combinations of arguments.</p>
 
-<div class="highlight highlight-python"><pre>eep.plot(my_experiment, <span class="pl-vpf">x</span><span class="pl-k">=</span><span class="pl-s3">range</span>(<span class="pl-c1">10</span>), <span class="pl-vpf">f</span><span class="pl-k">=</span>[<span class="pl-s1"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>cos<span class="pl-pds">'</span></span>], <span class="pl-vpf">shift</span><span class="pl-k">=</span>[<span class="pl-c1">False</span>, <span class="pl-c1">True</span>], 
-         <span class="pl-vpf">repetitions</span><span class="pl-k">=</span><span class="pl-c1">100</span>)</pre></div>
+<div class="highlight highlight-python"><pre>eep.plot(my_experiment, <span class="pl-vpf">x</span><span class="pl-k">=</span><span class="pl-s3">range</span>(<span class="pl-c1">10</span>), <span class="pl-vpf">f</span><span class="pl-k">=</span>[<span class="pl-s1"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>cos<span class="pl-pds">'</span></span>], 
+         <span class="pl-vpf">shift</span><span class="pl-k">=</span>[<span class="pl-c1">False</span>, <span class="pl-c1">True</span>], <span class="pl-vpf">repetitions</span><span class="pl-k">=</span><span class="pl-c1">100</span>)</pre></div>
 
 <p><img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163547_00.png" width="640px"></p>
 
 <p>That was easy. But what if the experiment doesn't have a numeric parameter like <em>x</em>? Then the result is plotted as bars:</p>
 
-<div class="highlight highlight-python"><pre>eep.plot(my_experiment, <span class="pl-vpf">f</span><span class="pl-k">=</span>[<span class="pl-s1"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>cos<span class="pl-pds">'</span></span>], <span class="pl-vpf">shift</span><span class="pl-k">=</span>[<span class="pl-c1">False</span>, <span class="pl-c1">True</span>], <span class="pl-vpf">repetitions</span><span class="pl-k">=</span><span class="pl-c1">100</span>)</pre></div>
+<div class="highlight highlight-python"><pre>eep.plot(my_experiment, <span class="pl-vpf">f</span><span class="pl-k">=</span>[<span class="pl-s1"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>cos<span class="pl-pds">'</span></span>], <span class="pl-vpf">shift</span><span class="pl-k">=</span>[<span class="pl-c1">False</span>, <span class="pl-c1">True</span>], 
+         <span class="pl-vpf">repetitions</span><span class="pl-k">=</span><span class="pl-c1">100</span>)</pre></div>
 
 <p><img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163600_00.png" width="640px"></p>
         </section>
