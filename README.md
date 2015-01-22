@@ -40,7 +40,8 @@ eep.plot(my_experiment, x=range(10), f='sin', repetitions=100)
 Nice, we have mean and standard deviation now! But how do the other parameters (*f* and *shift*) influence the result of the experiment? Again, we replace the arguments in question with lists of possible values and EasyExPlot takes care of running the experiment for different combinations of arguments.
 
 ```python
-eep.plot(my_experiment, x=range(10), f=['sin', 'cos'], shift=[False, True], repetitions=100)
+eep.plot(my_experiment, x=range(10), f=['sin', 'cos'], shift=[False, True], 
+         repetitions=100)
 ```
 
 <img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163547_00.png" width="640px">
