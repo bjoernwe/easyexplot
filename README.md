@@ -18,9 +18,7 @@ def my_experiment(x=0, f='sin', shift=False):
 
 Now, evaluating and plotting this function for different arguments works as simple as this:
 
-```
-#!python
-
+```python
 import easyexplot as eep
 
 # plot function for all values of x in range(10)
@@ -33,8 +31,7 @@ EasyExPlot automatically recognizes that parameter *x* is the one to iterate ove
 
 Suspecting that the function is noisy, we let EasyExPlot evaluate the function multiple times with the argument *repetitions*:
 
-```
-#!python
+```python
 eep.plot(my_experiment, x=range(10), f='sin', repetitions=100)
 ```
 
@@ -42,8 +39,7 @@ eep.plot(my_experiment, x=range(10), f='sin', repetitions=100)
 
 Nice, we have mean and standard deviation now! But how do the other parameters (*f* and *shift*) influence the result of the experiment? Again, we replace the arguments in question with lists of possible values and EasyExPlot takes care of running the experiment for different combinations of arguments.
 
-```
-#!python
+```python
 eep.plot(my_experiment, x=range(10), f=['sin', 'cos'], shift=[False, True], repetitions=100)
 ```
 
@@ -51,8 +47,7 @@ eep.plot(my_experiment, x=range(10), f=['sin', 'cos'], shift=[False, True], repe
 
 That was easy. But what if the experiment doesn't have a numeric parameter like *x*? Then the result is plotted as bars:
 
-```
-#!python
+```python
 eep.plot(my_experiment, f=['sin', 'cos'], shift=[False, True], repetitions=100)
 ```
 
