@@ -40,7 +40,7 @@ Suspecting that the function is noisy, we let EasyExPlot evaluate the function m
 eep.plot(my_experiment, x=range(10), f='sin', repetitions=50)
 ```
 
-![20150122_142548_00.png](https://bitbucket.org/repo/nX7gry/images/3251664006-20150122_142548_00.png)
+<img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163542_00.png" width="640px">
 
 Nice, we have mean and standard deviation now! But how do the other parameters (*f* and *shift*) influence the result of the experiment? Again, we replace the arguments in question with lists of possible values and EasyExPlot takes care of running the experiment for different combinations of arguments.
 
@@ -49,7 +49,7 @@ Nice, we have mean and standard deviation now! But how do the other parameters (
 eep.plot(my_experiment, x=range(10), f=['sin', 'cos'], shift=[False, True], repetitions=50)
 ```
 
-![20150122_142811_00.png](https://bitbucket.org/repo/nX7gry/images/1825501275-20150122_142811_00.png)
+<img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163547_00.png" width="640px">
 
 That was easy. But what if the experiment doesn't have a numeric parameter like *x*? Then the result is plotted as bars:
 
@@ -58,4 +58,5 @@ That was easy. But what if the experiment doesn't have a numeric parameter like 
 eep.plot(my_experiment, f=['sin', 'cos'], shift=[False, True], repetitions=50)
 ```
 
-![20150122_143556_00.png](https://bitbucket.org/repo/nX7gry/images/3575699363-20150122_143556_00.png)
+<img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163600_00.png" width="640px">
+
