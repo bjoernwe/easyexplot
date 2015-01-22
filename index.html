@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <link href='https://fonts.googleapis.com/css?family=Chivo:900' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <title>Easyexplot by bjoernwe</title>
+  </head>
+
+  <body>
+    <div id="container">
+      <div class="inner">
+
+        <header>
+          <h1>Easyexplot</h1>
+          <h2>Python library for plotting experiments with different input arguments</h2>
+        </header>
+
+        <section id="downloads" class="clearfix">
+          <a href="https://github.com/bjoernwe/easyexplot/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/bjoernwe/easyexplot/tarball/master" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/bjoernwe/easyexplot" id="view-on-github" class="button"><span>View on GitHub</span></a>
+        </section>
+
+        <hr>
+
+        <section id="main_content">
+          <h1>
+<a id="easyexplot" class="anchor" href="#easyexplot" aria-hidden="true"><span class="octicon octicon-link"></span></a>EasyExPlot</h1>
+
+<p>When running scientific experiments, you can often find yourself in the situation of calling the same functions again and again - only with different arguments. The code for these repeated experiments and their visualization easily becomes cumbersome and highly redundant. That's where EasyExPlot can help!</p>
+
+<p>EasyExPlot is a small Python tool that helps you plot your experiments with different combinations of input arguments. The idea is to automatically recognize which arguments are varied between experiments, run all the experiments parallelized over all the cores of your machine, and visualize the results with properly labeled axes and everything.</p>
+
+<h3>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h3>
+
+<p>Let's assume we have some experiment, which is nothing more than a real-valued function with different parameters.</p>
+
+<div class="highlight highlight-python"><pre><span class="pl-st">def</span> <span class="pl-en">my_experiment</span>(<span class="pl-vpf">x</span><span class="pl-k">=</span><span class="pl-c1">0</span>, <span class="pl-vpf">f</span><span class="pl-k">=</span><span class="pl-s1"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>, <span class="pl-vpf">shift</span><span class="pl-k">=</span><span class="pl-c1">False</span>):
+    <span class="pl-c"># calculate some stuf</span>
+    <span class="pl-c"># ...</span>
+    <span class="pl-k">return</span> result_value</pre></div>
+
+<p>Now, evaluating and plotting this function for different arguments works as simple as this:</p>
+
+<div class="highlight highlight-python"><pre><span class="pl-k">import</span> easyexplot <span class="pl-k">as</span> eep
+
+<span class="pl-c"># plot function for all values of x in range(10)</span>
+eep.plot(my_experiment, <span class="pl-vpf">x</span><span class="pl-k">=</span><span class="pl-s3">range</span>(<span class="pl-c1">10</span>), <span class="pl-vpf">f</span><span class="pl-k">=</span><span class="pl-s1"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>)</pre></div>
+
+<p>EasyExPlot automatically recognizes that parameter <em>x</em> is the one to iterate over and produces the following plot:</p>
+
+<p><img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163422_00.png" width="640px"></p>
+
+<p>Suspecting that the function is noisy, we let EasyExPlot evaluate the function multiple times with the argument <em>repetitions</em>:</p>
+
+<div class="highlight highlight-python"><pre>eep.plot(my_experiment, <span class="pl-vpf">x</span><span class="pl-k">=</span><span class="pl-s3">range</span>(<span class="pl-c1">10</span>), <span class="pl-vpf">f</span><span class="pl-k">=</span><span class="pl-s1"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>, <span class="pl-vpf">repetitions</span><span class="pl-k">=</span><span class="pl-c1">100</span>)</pre></div>
+
+<p><img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163542_00.png" width="640px"></p>
+
+<p>Nice, we have mean and standard deviation now! But how do the other parameters (<em>f</em> and <em>shift</em>) influence the result of the experiment? Again, we replace the arguments in question with lists of possible values and EasyExPlot takes care of running the experiment for different combinations of arguments.</p>
+
+<div class="highlight highlight-python"><pre>eep.plot(my_experiment, <span class="pl-vpf">x</span><span class="pl-k">=</span><span class="pl-s3">range</span>(<span class="pl-c1">10</span>), <span class="pl-vpf">f</span><span class="pl-k">=</span>[<span class="pl-s1"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>cos<span class="pl-pds">'</span></span>], <span class="pl-vpf">shift</span><span class="pl-k">=</span>[<span class="pl-c1">False</span>, <span class="pl-c1">True</span>], 
+         <span class="pl-vpf">repetitions</span><span class="pl-k">=</span><span class="pl-c1">100</span>)</pre></div>
+
+<p><img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163547_00.png" width="640px"></p>
+
+<p>That was easy. But what if the experiment doesn't have a numeric parameter like <em>x</em>? Then the result is plotted as bars:</p>
+
+<div class="highlight highlight-python"><pre>eep.plot(my_experiment, <span class="pl-vpf">f</span><span class="pl-k">=</span>[<span class="pl-s1"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>cos<span class="pl-pds">'</span></span>], <span class="pl-vpf">shift</span><span class="pl-k">=</span>[<span class="pl-c1">False</span>, <span class="pl-c1">True</span>], <span class="pl-vpf">repetitions</span><span class="pl-k">=</span><span class="pl-c1">100</span>)</pre></div>
+
+<p><img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163600_00.png" width="640px"></p>
+        </section>
+
+        <footer>
+          Easyexplot is maintained by <a href="https://github.com/bjoernwe">bjoernwe</a><br>
+          This page was generated by <a href="http://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
+        </footer>
+
+                  <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-58849775-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+      </div>
+    </div>
+  </body>
+</html>
