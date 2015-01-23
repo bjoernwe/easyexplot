@@ -14,7 +14,7 @@ import time
 import traceback
 
 
-__version__ = 0.2
+__version__ = '0.2.1'
 
 RESULT_PATH = 'easyexplot_results'
 
@@ -23,6 +23,7 @@ Result = collections.namedtuple('Result', ['values',
                                            'time_stop', 
                                            'iter_args', 
                                            'kwargs', 
+                                           'execution_times',
                                            'script', 
                                            'repetitions', 
                                            'result_prefix'])
@@ -31,7 +32,7 @@ A `namedtuple` to store results of `evaluate`.
 
 Attributes
 ----------
-values : array_like
+values : array
     An ndim array that contains all function evaluations. Each axis corresponds 
     to one iterable argument. The last axis stores different repetitions of
     experiments.
@@ -43,6 +44,9 @@ iter_args : OrderedDict
     Am ordered dictionary of all iterable argument names and there values. 
 kwargs : dict
     Dictionary of all the non-iterable arguments used for evaluation.
+execution_times : array
+    Array containing execution times (in seconds) for each function evaluation.
+    The shape is the same as for `values`.
 script : str
     Name of the calling script.
 repetitions : int
@@ -125,18 +129,24 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     # start a pool of processes
     time_start = time.localtime()
     if processes <= 1:
-        result_values = map(f_partial, iter_args_values_tupled_repeated)
+        result_list = map(f_partial, iter_args_values_tupled_repeated)
     else:
         pool = multiprocessing.Pool(processes=processes)
-        result_values = pool.map(f_partial, iter_args_values_tupled_repeated, chunksize=1)
+        result_list = pool.map(f_partial, iter_args_values_tupled_repeated, chunksize=1)
         pool.close()
         pool.join()
     time_stop = time.localtime()
     
-    # re-arrange repetitions in ndim array
+    # seperate the result value from runtime measurement
+    result_array = np.array(result_list)
+    result_values = result_array[:,0]
+    result_time = result_array[:,1]
+    
+    # re-arrange ndim array
     iter_args_values_lengths = [len(values) for values in iter_args.values()]
     values_shape = tuple(iter_args_values_lengths + [repetitions])
     result_values = np.reshape(result_values, values_shape)
+    result_time = np.reshape(result_time, values_shape)
         
     # calculate a prefix for result files
     timestamp = time.strftime('%Y%m%d_%H%M%S', time_start)
@@ -151,6 +161,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                     time_stop=time_stop,
                     iter_args=iter_args,
                     kwargs=fkwargs,
+                    execution_times=result_time,
                     script=([s[1] for s in inspect.stack() if os.path.basename(s[1]) != 'plotter.py'] + [None])[0],
                     repetitions=repetitions,
                     result_prefix=result_prefix)
@@ -193,11 +204,14 @@ def _f_wrapper(args, iter_arg_names, experiment_function, **kwargs):
         for i, iter_arg_name in enumerate(iter_arg_names):
             kwargs[iter_arg_name] = args[i]
     try:
+        time_start = time.localtime()
         result = experiment_function(**kwargs)
+        time_stop = time.localtime()
+        runtime = time.mktime(time_stop) - time.mktime(time_start)
     except Exception as e:
         sys.stderr.write(traceback.format_exc())
         raise e
-    return result
+    return (result, runtime)
 
 
 
