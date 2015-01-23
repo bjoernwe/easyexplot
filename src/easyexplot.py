@@ -7,6 +7,7 @@ import multiprocessing
 import numpy as np
 import os
 import pickle
+import random
 import sys
 import textwrap
 import time
@@ -171,8 +172,8 @@ def _f_wrapper(args, iter_arg_names, experiment_function, **kwargs):
     argument. This is the method that is actually managed and called by the 
     multiprocessing pool. Therefore the argument 'niceness' is removed from 
     **kwargs and used to increment the niceness of the current process 
-    (default: 10). Also the NumPy's random number generator is initialized with 
-    a new seed.
+    (default: 10). Also the Python's and NumPy's random number generators are 
+    initialized with a new seed.
     
     Parameters
     ----------
@@ -186,6 +187,7 @@ def _f_wrapper(args, iter_arg_names, experiment_function, **kwargs):
         All other arguments for `experiment_function`.
     """
     os.nice(kwargs.pop('niceness', 20))
+    random.seed()
     np.random.seed()
     if iter_arg_names is not None:
         for i, iter_arg_name in enumerate(iter_arg_names):
