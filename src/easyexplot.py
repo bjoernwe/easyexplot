@@ -319,9 +319,7 @@ def plot_result(result, save_plot=True, show_plot=True):
         plt.xlabel(numeric_iter_args.keys()[0])
     elif len(numeric_iter_args) == 2:
         assert len(non_numeric_iter_args) == 0
-        result_values = result.values
-        if result.repetitions > 1:
-            result_values = np.mean(result_values, axis=-1)
+        result_values = np.mean(result.values, axis=-1)
         plt.imshow(result_values.T, origin='lower', cmap=cmap)
         plt.xlabel(numeric_iter_args.keys()[0])
         plt.ylabel(numeric_iter_args.keys()[1])
@@ -452,7 +450,7 @@ def main():
     plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], argument_order=['f'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
     
     # 2d plot
-    plot(my_experiment, x=range(10), y=range(10), repetitions=10, show_plot=show_plot, save_plot=save_plot)
+    plot(my_experiment, x=range(10), y=range(10), repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
 
 
 
