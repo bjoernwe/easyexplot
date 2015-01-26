@@ -111,27 +111,14 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     assert len(undefined_args) == 0
     
     # here we create a list of tuples, containing all combinations of input 
-    # arguments: [(arg0[0], arg1[0]), (arg0[0], arg1[1]), (arg0[1], arg1[0]) ...]
-    # 
-    # if a seed is given, it is augmented by the loop's index to make sure,
-    # each function call uses a well defined but distinct seed value
-    # 
-    # without seed, all argument tuples are simply repeated by the number of
-    # repetitions
-    f_iter_args_names = iter_args.keys()
-    seed = fkwargs.get('seed', None)
-    assert not _is_iterable(seed)
-    iter_args_values_tupled = itertools.product(*iter_args.values())
-    if seed is not None and repetitions > 1:
-        f_iter_args_names += ['seed']
-        iter_args_values_tupled = [arg + tuple([seed+i*repetitions+j]) for i, arg in enumerate(iter_args_values_tupled) for j in range(repetitions)]
-    else:
-        iter_args_values_tupled = [arg for arg in iter_args_values_tupled for _ in range(repetitions)]
+    # arguments and repetition index: 
+    # [(arg0[0], arg1[0]), (arg0[0], arg1[1]), (arg0[1], arg1[0]) ...]
+    iter_args_values_tupled = itertools.product(*(iter_args.values() + [range(repetitions)]))
 
     # wrap function f
     f_partial = functools.partial(_f_wrapper, 
-                                  iter_arg_names=f_iter_args_names, 
-                                  experiment_function=experiment_function, 
+                                  iter_arg_names=iter_args.keys(), 
+                                  experiment_function=experiment_function,
                                   **fkwargs)
     
     # number of parallel processes
@@ -149,7 +136,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
         pool.join()
     time_stop = time.localtime()
     
-    # seperate the result value from runtime measurement
+    # separate the result value from runtime measurement
     result_array = np.array(result_list)
     result_values = result_array[:,0]
     result_time = result_array[:,1]
@@ -200,7 +187,9 @@ def _f_wrapper(args, iter_arg_names, experiment_function, **kwargs):
     Parameters
     ----------
     args : list
-        The values for `iter_args` when calling `experiment_function`.
+        The values for `iter_args` when calling `experiment_function`. The last
+        item in addition gives the index of the current repetition of the 
+        experiment.
     iter_arg_names : tuple of strings
         Names of the arguments
     experiment_function : function
@@ -208,10 +197,25 @@ def _f_wrapper(args, iter_arg_names, experiment_function, **kwargs):
     kwargs : dict, optional
         All other arguments for `experiment_function`.
     """
+    # reduce niceness of process
     os.nice(kwargs.pop('niceness', 20))
+    
+    # get repetition index
+    repetition_index = args[-1]
+    
+    # set current value for iterable arguments
     if iter_arg_names is not None:
         for i, iter_arg_name in enumerate(iter_arg_names):
             kwargs[iter_arg_name] = args[i]
+
+    # initialize a seed that is uniquely defined by the set of input arguments
+    # and the repetition index            
+    seed = kwargs.pop('seed', None)
+    if seed is not None:
+        seed_arguments = frozenset(kwargs.items() + [('repetition_index', repetition_index)])
+        kwargs['seed'] = abs(hash(seed_arguments))
+    
+    # execute experiment
     try:
         time_start = time.localtime()
         result = experiment_function(**kwargs)
@@ -453,31 +457,32 @@ def main():
     Calls the plot function on my_experiment().
     """
     seed = 0
-    repetitions = 2
+    repetitions = 1
     show_plot = True
     save_plot = False
+    processes = None
 
     # regular call of the experiment    
     print my_experiment(x=0, f='sin', seed=seed, shift=False)
 
     # plot with varying x
-    plot(my_experiment, x=range(10), f='sin', seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
+    plot(my_experiment, x=range(10), f='sin', seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes)
     
     # plot with varying x and f
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes)
     
     # plot with varying x as well as f and shift
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes)
 
     # plot with varying x as well as f and shift, but force a certain order
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], argument_order=['f', 'shift'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], argument_order=['f', 'shift'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes)
     
     # bar plot for x=0 with varying f and shift (as well as forced order of parameters)
-    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
-    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, argument_order=['f'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
+    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes)
+    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, argument_order=['f'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes)
     
     # 2d plot
-    plot(my_experiment, x=range(10), y=range(10), seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
+    plot(my_experiment, x=range(10), y=range(10), seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes)
 
 
 
