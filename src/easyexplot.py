@@ -98,26 +98,39 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     if fargspecs.defaults is not None:
         fkwargs.update(dict(zip(fargspecs.args[-len(fargspecs.defaults):], fargspecs.defaults)))
     fkwargs.update(kwargs)
-
+    
     # OrderedDict of argument names and values
     iter_args = collections.OrderedDict()
     # if parameters are ordered, then they are processed first
     if argument_order is not None:
         iter_args.update([(name, None) for name in argument_order if name in fkwargs and _is_iterable(fkwargs[name])])
     iter_args.update({name: fkwargs.pop(name) for (name, values) in fkwargs.items() if _is_iterable(values)})
-
+    
     # make sure, all arguments are defined for function f
-    undefined_args = set(fargspecs.args) - set(fkwargs.keys()) - set(iter_args.keys())
+    undefined_args = set(fargspecs.args) - set(fkwargs.keys()) - set(iter_args.keys()) - set(['seed'])
     assert len(undefined_args) == 0
     
-    # create a argument list like [(arg0[0], arg1[0]), (arg0[1], arg1[1]), ...]
-    # and then each tuple repeated for the specified number of repetitions
+    # here we create a list of tuples, containing all combinations of input 
+    # arguments: [(arg0[0], arg1[0]), (arg0[0], arg1[1]), (arg0[1], arg1[0]) ...]
+    # 
+    # if a seed is given, it is augmented by the loop's index to make sure,
+    # each function call uses a well defined but distinct seed value
+    # 
+    # without seed, all argument tuples are simply repeated by the number of
+    # repetitions
+    f_iter_args_names = iter_args.keys()
+    seed = fkwargs.get('seed', None)
+    assert not _is_iterable(seed)
     iter_args_values_tupled = itertools.product(*iter_args.values())
-    iter_args_values_tupled_repeated = [arg for arg in iter_args_values_tupled for _ in range(repetitions)]
+    if seed is not None and repetitions > 1:
+        f_iter_args_names += ['seed']
+        iter_args_values_tupled = [arg + tuple([seed+i*repetitions+j]) for i, arg in enumerate(iter_args_values_tupled) for j in range(repetitions)]
+    else:
+        iter_args_values_tupled = [arg for arg in iter_args_values_tupled for _ in range(repetitions)]
 
     # wrap function f
     f_partial = functools.partial(_f_wrapper, 
-                                  iter_arg_names=iter_args.keys(), 
+                                  iter_arg_names=f_iter_args_names, 
                                   experiment_function=experiment_function, 
                                   **fkwargs)
     
@@ -128,10 +141,10 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     # start a pool of processes
     time_start = time.localtime()
     if processes <= 1:
-        result_list = map(f_partial, iter_args_values_tupled_repeated)
+        result_list = map(f_partial, iter_args_values_tupled)
     else:
         pool = multiprocessing.Pool(processes=processes)
-        result_list = pool.map(f_partial, iter_args_values_tupled_repeated, chunksize=1)
+        result_list = pool.map(f_partial, iter_args_values_tupled, chunksize=1)
         pool.close()
         pool.join()
     time_stop = time.localtime()
@@ -182,8 +195,7 @@ def _f_wrapper(args, iter_arg_names, experiment_function, **kwargs):
     argument. This is the method that is actually managed and called by the 
     multiprocessing pool. Therefore the argument 'niceness' is removed from 
     **kwargs and used to increment the niceness of the current process 
-    (default: 10). Also the Python's and NumPy's random number generators are 
-    initialized with a new seed.
+    (default: 10).
     
     Parameters
     ----------
@@ -197,8 +209,6 @@ def _f_wrapper(args, iter_arg_names, experiment_function, **kwargs):
         All other arguments for `experiment_function`.
     """
     os.nice(kwargs.pop('niceness', 20))
-    random.seed()
-    np.random.seed()
     if iter_arg_names is not None:
         for i, iter_arg_name in enumerate(iter_arg_names):
             kwargs[iter_arg_name] = args[i]
@@ -418,10 +428,13 @@ def list_results():
 
 
 
-def my_experiment(x, y=0, f='sin', shift=False):
+def my_experiment(x, y=0, f='sin', shift=False, seed=None):
     """
     A simple example for an experiment function.
     """
+    print 'got seed:', seed
+    np.random.seed(seed)
+    
     if f == 'sin':
         result_value = np.sin(x)
     elif f == 'cos':
@@ -439,31 +452,32 @@ def main():
     """
     Calls the plot function on my_experiment().
     """
-    repetitions = 50
+    seed = 0
+    repetitions = 2
     show_plot = True
     save_plot = False
 
     # regular call of the experiment    
-    print my_experiment(x=0, f='sin', shift=False)
+    print my_experiment(x=0, f='sin', seed=seed, shift=False)
 
     # plot with varying x
-    plot(my_experiment, x=range(10), f='sin', shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
+    plot(my_experiment, x=range(10), f='sin', seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
     
     # plot with varying x and f
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
     
     # plot with varying x as well as f and shift
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], shift=[False, True], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
 
     # plot with varying x as well as f and shift, but force a certain order
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], shift=[False, True], argument_order=['f', 'shift'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], argument_order=['f', 'shift'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
     
     # bar plot for x=0 with varying f and shift (as well as forced order of parameters)
-    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
-    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], argument_order=['f'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
+    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
+    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, argument_order=['f'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
     
     # 2d plot
-    plot(my_experiment, x=range(10), y=range(10), repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
+    plot(my_experiment, x=range(10), y=range(10), seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot)
 
 
 
