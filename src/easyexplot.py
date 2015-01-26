@@ -24,6 +24,7 @@ Result = collections.namedtuple('Result', ['values',
                                            'iter_args', 
                                            'kwargs', 
                                            'execution_times',
+                                           'seeds',
                                            'script', 
                                            'repetitions', 
                                            'result_prefix'])
@@ -47,6 +48,8 @@ kwargs : dict
 execution_times : array
     Array containing execution times (in seconds) for each function evaluation.
     The shape is the same as for `values`.
+seeds : array
+    Like `values` and `execution_times` but containing the used seed values.
 script : str
     Name of the calling script.
 repetitions : int
@@ -81,7 +84,11 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     save_result : bool, optional
         If True, the pickled result is stored in `RESULT_PATH` (default: False).
     kwargs : dict, optional
-        Keyword arguments passed to function `experiment_function`.
+        Keyword arguments passed to function `experiment_function`. If a `seed`
+        argument is given and the experiment is repeated more than once, the
+        seed is replaced by a new value, determined by the set of input 
+        arguments and the repetition index. Otherwise, repetition wouldn't have 
+        any effect.
         
     Returns
     -------
@@ -107,7 +114,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     iter_args.update({name: fkwargs.pop(name) for (name, values) in fkwargs.items() if _is_iterable(values)})
     
     # make sure, all arguments are defined for function f
-    undefined_args = set(fargspecs.args) - set(fkwargs.keys()) - set(iter_args.keys()) - set(['seed'])
+    undefined_args = set(fargspecs.args) - set(fkwargs.keys()) - set(iter_args.keys())
     assert len(undefined_args) == 0
     
     # here we create a list of tuples, containing all combinations of input 
@@ -119,6 +126,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     f_partial = functools.partial(_f_wrapper, 
                                   iter_arg_names=iter_args.keys(), 
                                   experiment_function=experiment_function,
+                                  repetitions=repetitions,
                                   **fkwargs)
     
     # number of parallel processes
@@ -138,14 +146,16 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     
     # separate the result value from runtime measurement
     result_array = np.array(result_list)
-    result_values = result_array[:,0]
-    result_time = result_array[:,1]
+    result_values = np.array(result_array[:,0], dtype='float')
+    result_times = np.array(result_array[:,1], dtype='float')
+    result_seeds = result_array[:,2]
     
     # re-arrange ndim array
     iter_args_values_lengths = [len(values) for values in iter_args.values()]
     values_shape = tuple(iter_args_values_lengths + [repetitions])
     result_values = np.reshape(result_values, values_shape)
-    result_time = np.reshape(result_time, values_shape)
+    result_times = np.reshape(result_times, values_shape)
+    result_seeds = np.reshape(result_seeds, values_shape)
         
     # calculate a prefix for result files
     timestamp = time.strftime('%Y%m%d_%H%M%S', time_start)
@@ -160,7 +170,8 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                     time_stop=time_stop,
                     iter_args=iter_args,
                     kwargs=fkwargs,
-                    execution_times=result_time,
+                    execution_times=result_times,
+                    seeds=result_seeds,
                     script=([s[1] for s in inspect.stack() if os.path.basename(s[1]) != 'plotter.py'] + [None])[0],
                     repetitions=repetitions,
                     result_prefix=result_prefix)
@@ -175,7 +186,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
 
 
 
-def _f_wrapper(args, iter_arg_names, experiment_function, **kwargs):
+def _f_wrapper(args, iter_arg_names, experiment_function, repetitions, **kwargs):
     """
     [Intended for internal use only] A simple wrapper for the experiment 
     function that allows having specific arguments ('iter_args') as the first 
@@ -196,6 +207,11 @@ def _f_wrapper(args, iter_arg_names, experiment_function, **kwargs):
         The function to call as experiment_function(iter_arg_names[0]=args[0], iter_arg_names[1]=args[1], ..., **kwargs).
     kwargs : dict, optional
         All other arguments for `experiment_function`.
+        
+    Returns
+    -------
+    tuple
+        (result_value, execution_time, used_seed)
     """
     # reduce niceness of process
     os.nice(kwargs.pop('niceness', 20))
@@ -209,11 +225,11 @@ def _f_wrapper(args, iter_arg_names, experiment_function, **kwargs):
             kwargs[iter_arg_name] = args[i]
 
     # initialize a seed that is uniquely defined by the set of input arguments
-    # and the repetition index            
-    seed = kwargs.pop('seed', None)
-    if seed is not None:
+    seed = kwargs.get('seed', None)
+    if seed is not None and repetitions > 1:
         seed_arguments = frozenset(kwargs.items() + [('repetition_index', repetition_index)])
-        kwargs['seed'] = abs(hash(seed_arguments))
+        seed = abs(hash(seed_arguments))
+        kwargs['seed'] = seed
     
     # execute experiment
     try:
@@ -224,7 +240,7 @@ def _f_wrapper(args, iter_arg_names, experiment_function, **kwargs):
     except Exception as e:
         sys.stderr.write(traceback.format_exc())
         raise e
-    return (result, runtime)
+    return (result, runtime, seed)
 
 
 
@@ -335,8 +351,8 @@ def plot_result(result, save_plot=True, show_plot=True):
         for i, index_tuple in enumerate(index_tuples):
             x_values = numeric_iter_args.values()[0]
             y_values = np.mean(result.values[index_tuple], axis=-1)
-            y_errors = np.std(result.values[index_tuple], axis=-1)
             if result.repetitions > 1:
+                y_errors = np.std(result.values[index_tuple], axis=-1)
                 plt.errorbar(x_values, y_values, yerr=y_errors, linewidth=1., color=cmap(1.*i/len(index_tuples)))
             else:
                 plt.plot(x_values, y_values, linewidth=1., color=cmap(1.*i/len(index_tuples)))
@@ -460,10 +476,10 @@ def main():
     Calls the plot function on my_experiment().
     """
     seed = 0
-    repetitions = 1
+    repetitions = 2
     show_plot = True
     save_plot = False
-    processes = None
+    processes = 1
 
     # regular call of the experiment    
     print my_experiment(x=0, f='sin', seed=seed, shift=False)
