@@ -101,21 +101,20 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
 
     # OrderedDict of argument names and values
     iter_args = collections.OrderedDict()
+    # if parameters are ordered, then they are processed first
     if argument_order is not None:
         iter_args.update([(name, None) for name in argument_order if name in fkwargs and _is_iterable(fkwargs[name])])
     iter_args.update({name: fkwargs.pop(name) for (name, values) in fkwargs.items() if _is_iterable(values)})
 
+    # make sure, all arguments are defined for function f
+    undefined_args = set(fargspecs.args) - set(fkwargs.keys()) - set(iter_args.keys())
+    assert len(undefined_args) == 0
+    
     # create a argument list like [(arg0[0], arg1[0]), (arg0[1], arg1[1]), ...]
     # and then each tuple repeated for the specified number of repetitions
     iter_args_values_tupled = itertools.product(*iter_args.values())
     iter_args_values_tupled_repeated = [arg for arg in iter_args_values_tupled for _ in range(repetitions)]
 
-    # make sure, all arguments are defined for function f
-    if len(fargspecs.args) > len(iter_args) + len(fkwargs):
-        undefined_args = set(fargspecs.args) - set(fkwargs.keys()) - set(iter_args.keys())
-        sys.stderr.write('Error: Undefined arguments: %s' % str.join(', ', undefined_args))
-        return
-    
     # wrap function f
     f_partial = functools.partial(_f_wrapper, 
                                   iter_arg_names=iter_args.keys(), 
