@@ -336,7 +336,10 @@ def plot_result(result, save_plot=True, show_plot=True):
             x_values = numeric_iter_args.values()[0]
             y_values = np.mean(result.values[index_tuple], axis=-1)
             y_errors = np.std(result.values[index_tuple], axis=-1)
-            plt.errorbar(x_values, y_values, yerr=y_errors, linewidth=1., color=cmap(1.*i/len(index_tuples)))
+            if result.repetitions > 1:
+                plt.errorbar(x_values, y_values, yerr=y_errors, linewidth=1., color=cmap(1.*i/len(index_tuples)))
+            else:
+                plt.plot(x_values, y_values, linewidth=1., color=cmap(1.*i/len(index_tuples)))
         legend = []
         non_numeric_name_value_lists = [[(name, value) for value in values] for (name, values) in non_numeric_iter_args.items()]
         if len(non_numeric_name_value_lists) >= 1:
