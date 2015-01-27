@@ -7,14 +7,13 @@ import multiprocessing
 import numpy as np
 import os
 import pickle
-import random
 import sys
 import textwrap
 import time
 import traceback
 
 
-__version__ = '0.2.1'
+__version__ = '0.3'
 
 RESULT_PATH = 'easyexplot_results'
 
@@ -61,7 +60,7 @@ result_prefix : str
 
 
 
-def evaluate(experiment_function, repetitions=1, processes=None, argument_order=None, save_result=False, **kwargs):
+def evaluate(experiment_function, repetitions=1, processes=None, argument_order=None, cachedir=None, **kwargs):
     """
     Evaluates the real-valued function f using the given keyword arguments. 
     Usually, one or more of the arguments are iterables (for instance a list of 
@@ -81,8 +80,9 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
         Some of the iterable argument names may be given in a list to force a
         certain order. Without this, Python's kwargs have an undefined order 
         which may result in plots other than intended.
-    save_result : bool, optional
-        If True, the pickled result is stored in `RESULT_PATH` (default: False).
+    cachedir : str, optional
+        If a cache directory is given, joblib.Memory is used to cache the
+        results of experiments in that directory.
     kwargs : dict, optional
         Keyword arguments passed to function `experiment_function`. If a `seed`
         argument is given and the experiment is repeated more than once, the
@@ -127,6 +127,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                                   iter_arg_names=iter_args.keys(), 
                                   experiment_function=experiment_function,
                                   repetitions=repetitions,
+                                  cachedir=cachedir,
                                   **fkwargs)
     
     # number of parallel processes
@@ -176,17 +177,11 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                     repetitions=repetitions,
                     result_prefix=result_prefix)
     
-    if save_result:
-        if not os.path.exists(RESULT_PATH):
-            os.makedirs(RESULT_PATH)
-        with open('%s/%s.pkl' % RESULT_PATH, result_prefix, 'wb') as f:
-            pickle.dump(result, f)
-    
     return result
 
 
 
-def _f_wrapper(args, iter_arg_names, experiment_function, repetitions, **kwargs):
+def _f_wrapper(args, iter_arg_names, experiment_function, repetitions, cachedir=None, **kwargs):
     """
     [Intended for internal use only] A simple wrapper for the experiment 
     function that allows having specific arguments ('iter_args') as the first 
@@ -205,6 +200,11 @@ def _f_wrapper(args, iter_arg_names, experiment_function, repetitions, **kwargs)
         Names of the arguments
     experiment_function : function
         The function to call as experiment_function(iter_arg_names[0]=args[0], iter_arg_names[1]=args[1], ..., **kwargs).
+    repetitions : int
+        number of repetitions for experiment
+    cachedir : str, optional
+        If a cache directory is given, joblib.Memory is used to cache the
+        results of experiments in that directory.
     kwargs : dict, optional
         All other arguments for `experiment_function`.
         
@@ -231,10 +231,17 @@ def _f_wrapper(args, iter_arg_names, experiment_function, repetitions, **kwargs)
         seed = abs(hash(seed_arguments))
         kwargs['seed'] = seed
     
+    # cache results    
+    experiment_function_cached = experiment_function
+    if cachedir is not None:
+        import joblib
+        memory = joblib.Memory(cachedir=cachedir)
+        experiment_function_cached = memory.cache(experiment_function)
+    
     # execute experiment
     try:
         time_start = time.localtime()
-        result = experiment_function(**kwargs)
+        result = experiment_function_cached(**kwargs)
         time_stop = time.localtime()
         runtime = time.mktime(time_stop) - time.mktime(time_start)
     except Exception as e:
@@ -244,7 +251,7 @@ def _f_wrapper(args, iter_arg_names, experiment_function, repetitions, **kwargs)
 
 
 
-def plot(experiment_function, repetitions=1, processes=None, argument_order=None, save_result=False, show_plot=True, save_plot=False, **kwargs):
+def plot(experiment_function, repetitions=1, processes=None, argument_order=None, show_plot=True, save_plot=False, cachedir=None, **kwargs):
     """
     Plots the real-valued function f using the given keyword arguments. At least
     one of the arguments must be an iterable (for instance a list of integers), 
@@ -268,11 +275,15 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
         If True, the pickled result is stored in `RESULT_PATH` (default: False).
     show_plot : bool, optional
         Indicates whether pyplot.show() is called or not (default: True).
-    save_plot : bool, optional
-        Indicates whether the plot is saved as a PNG file in 
-        './experimentr_results' (default: False).
+    cachedir : str, optional
+        If a cache directory is given, joblib.Memory is used to cache the
+        results of experiments in that directory.
     kwargs : dict, optional
-        Keyword arguments passed to function `experiment_function`.
+        Keyword arguments passed to function `experiment_function`. If a `seed`
+        argument is given and the experiment is repeated more than once, the
+        seed is replaced by a new value, determined by the set of input 
+        arguments and the repetition index. Otherwise, repetition wouldn't have 
+        any effect.
         
     Returns
     -------
@@ -281,7 +292,12 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
     """
 
     # run the experiment
-    result = evaluate(experiment_function, repetitions=repetitions, processes=processes, argument_order=argument_order, save_result=save_result, **kwargs)
+    result = evaluate(experiment_function, 
+                      repetitions=repetitions, 
+                      processes=processes, 
+                      argument_order=argument_order, 
+                      cachedir=cachedir, 
+                      **kwargs)
     if result is None:
         return
 
@@ -433,30 +449,14 @@ def _is_iterable(x):
 
 
 
-def list_results():
-    """
-    Prints a summary of all previous results saved in sub-directory 
-    `RESULT_PATH`.
-    """
-    if os.path.exists('plotter_results'):
-        files = [f for f in os.listdir(RESULT_PATH) if os.path.splitext(f)[1] == '.pkl']
-        files = sorted(files)
-        for f in files:
-            result = pickle.load(open(RESULT_PATH + f))
-            print '%s  <%s>  \t%s, %s' % (result.result_prefix, 
-                                       os.path.basename(str(result.script)),
-                                       result.iter_arg_name,
-                                       ', '.join(['%s=%s' % (k,v) for (k,v) in result.kwargs.items()]))
-    return
-
-
-
 def my_experiment(x, y=0, f='sin', shift=False, seed=None):
     """
     A simple example for an experiment function.
     """
     print 'got seed:', seed
     np.random.seed(seed)
+
+    time.sleep(1)
     
     if f == 'sin':
         result_value = np.sin(x)
@@ -476,32 +476,33 @@ def main():
     Calls the plot function on my_experiment().
     """
     seed = 0
-    repetitions = 2
+    repetitions = 10
     show_plot = True
     save_plot = False
-    processes = 1
-
+    processes = None
+    cachedir = '/tmp'
+    
     # regular call of the experiment    
     print my_experiment(x=0, f='sin', seed=seed, shift=False)
 
     # plot with varying x
-    plot(my_experiment, x=range(10), f='sin', seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes)
+    plot(my_experiment, x=range(10), f='sin', seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir)
     
     # plot with varying x and f
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir)
     
     # plot with varying x as well as f and shift
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir)
 
     # plot with varying x as well as f and shift, but force a certain order
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], argument_order=['f', 'shift'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], argument_order=['f', 'shift'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir)
     
     # bar plot for x=0 with varying f and shift (as well as forced order of parameters)
-    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes)
-    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, argument_order=['f'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes)
+    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir)
+    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, argument_order=['f'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir)
     
     # 2d plot
-    plot(my_experiment, x=range(10), y=range(10), seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes)
+    plot(my_experiment, x=range(10), y=range(10), seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir)
 
 
 
