@@ -1,6 +1,7 @@
 import collections
 import datetime
 import functools
+import hashlib
 import inspect
 import itertools
 import multiprocessing
@@ -13,7 +14,7 @@ import time
 import traceback
 
 
-__version__ = '0.3'
+__version__ = '0.3.1'
 
 RESULT_PATH = 'easyexplot_results'
 
@@ -239,23 +240,53 @@ def _f_wrapper(args, iter_arg_names, experiment_function, repetitions, cachedir=
         seed = abs(hash(seed_arguments))
         kwargs['seed'] = seed
     
-    # cache results    
-    experiment_function_cached = experiment_function
+    # cache function with joblib. the hash is calculated manually, because due
+    # to the wrapper, joblib would not detect a modified experiment_function
+    exp_func_hash = None
+    f_wrapper_cached = _f_wrapper_timed
     if cachedir is not None:
         import joblib
+        exp_func_code, _, _ = joblib.func_inspect.get_func_code(experiment_function)
+        exp_func_hash = hashlib.sha1(exp_func_code).hexdigest()
         memory = joblib.Memory(cachedir=cachedir, verbose=0)
-        experiment_function_cached = memory.cache(experiment_function)
+        f_wrapper_cached = memory.cache(_f_wrapper_timed)
     
     # execute experiment
     try:
-        dt1 = datetime.datetime.now()
-        result = experiment_function_cached(**kwargs)
-        dt2 = datetime.datetime.now()
-        elapsed_time = (dt2 - dt1).total_seconds() * 1000
+        result, elapsed_time = f_wrapper_cached(wrapped_func=experiment_function, wrapped_hash=exp_func_hash, **kwargs)
     except Exception as e:
         sys.stderr.write(traceback.format_exc())
         raise e
     return (result, elapsed_time, seed)
+
+
+
+def _f_wrapper_timed(wrapped_func, wrapped_hash, **kwargs):
+    """
+    [Intended for internal use only] A simple wrapper that executes 
+    `wrapped_func` with the given `kwargs`. The result is returned together with
+    the elapsed time in milliseconds.
+    
+    Parameters
+    ----------
+    wrapped_func : function
+        The function to execute.
+    wrapped_hash : str
+        Hash of the source code of `wrapped_function`. The argument is not used,
+        but it avoids outdated caches in combination with joblib.Memory.
+    kwargs : dict
+        Keyword arguments passed to `wrapped_func`
+        
+    Returns
+    -------
+    tuple
+        (wrapped_func(**kwargs), elapsed_time)
+    """
+    dt1 = datetime.datetime.now()
+    result = wrapped_func(**kwargs)
+    dt2 = datetime.datetime.now()
+    elapsed_time = (dt2 - dt1).total_seconds() * 1000
+    return (result, elapsed_time) 
 
 
 
