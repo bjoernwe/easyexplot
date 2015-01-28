@@ -22,7 +22,7 @@ Result = collections.namedtuple('Result', ['values',
                                            'time_stop', 
                                            'iter_args', 
                                            'kwargs', 
-                                           'execution_times',
+                                           'elapsed_times',
                                            'seeds',
                                            'script', 
                                            'repetitions',
@@ -45,9 +45,9 @@ iter_args : OrderedDict
     Am ordered dictionary of all iterable argument names and there values. 
 kwargs : dict
     Dictionary of all the non-iterable arguments used for evaluation.
-execution_times : array
-    Array containing execution times (in seconds) for each function evaluation.
-    The shape is the same as for `values`.
+elapsed_times : array
+    Array containing execution times (in milliseconds) for each function 
+    evaluation. The shape is the same as for `values`.
 seeds : array
     Like `values` and `execution_times` but containing the used seed values.
 script : str
@@ -178,7 +178,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                     time_stop=time_stop,
                     iter_args=iter_args,
                     kwargs=fkwargs,
-                    execution_times=result_times,
+                    elapsed_times=result_times,
                     seeds=result_seeds,
                     script=([s[1] for s in inspect.stack() if os.path.basename(s[1]) != 'plotter.py'] + [None])[0],
                     repetitions=repetitions,
@@ -219,7 +219,7 @@ def _f_wrapper(args, iter_arg_names, experiment_function, repetitions, cachedir=
     Returns
     -------
     tuple
-        (result_value, execution_time, used_seed)
+        (result_value, elapsed_time, used_seed)
     """
     # reduce niceness of process
     os.nice(kwargs.pop('niceness', 20))
@@ -248,14 +248,14 @@ def _f_wrapper(args, iter_arg_names, experiment_function, repetitions, cachedir=
     
     # execute experiment
     try:
-        time_start = time.localtime()
+        dt1 = datetime.datetime.now()
         result = experiment_function_cached(**kwargs)
-        time_stop = time.localtime()
-        runtime = time.mktime(time_stop) - time.mktime(time_start)
+        dt2 = datetime.datetime.now()
+        elapsed_time = (dt2 - dt1).total_seconds() * 1000
     except Exception as e:
         sys.stderr.write(traceback.format_exc())
         raise e
-    return (result, runtime, seed)
+    return (result, elapsed_time, seed)
 
 
 
@@ -316,13 +316,11 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
 
 def plot_result(result, save_plot=True, show_plot=True):
     """
-    Plots the result of an experiment. The result can be given as the return 
-    value of evaluate() directly or as the filename of a previously pickled 
-    results, e.g., '20141205_150015_00.pkl'.
+    Plots the result of an experiment.
     
     Parameters
     ----------
-    result : Result or str
+    result : Result
         The result to plot.
     show_plot : bool, optional
         Indicates whether pyplot.show() is called or not (default: True).
@@ -339,10 +337,6 @@ def plot_result(result, save_plot=True, show_plot=True):
     # import here makes evaluate() independent from matplotlib
     from matplotlib import pyplot as plt
     
-    # read result from file
-    if isinstance(result, str):
-        result = pickle.load(open(RESULT_PATH + result))
-        
     # sort the iterable arguments according to whether they are numeric
     numeric_iter_args = collections.OrderedDict([(name, values) for (name, values) in result.iter_args.items() if _all_numeric(values)])
     non_numeric_iter_args = collections.OrderedDict([(name, values) for (name, values) in result.iter_args.items() if not _all_numeric(values)])
