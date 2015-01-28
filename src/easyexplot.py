@@ -25,7 +25,8 @@ Result = collections.namedtuple('Result', ['values',
                                            'execution_times',
                                            'seeds',
                                            'script', 
-                                           'repetitions', 
+                                           'repetitions',
+                                           'cachedir', 
                                            'result_prefix'])
 """
 A `namedtuple` to store results of `evaluate`.
@@ -53,6 +54,8 @@ script : str
     Name of the calling script.
 repetitions : int
     Number of repetitions used for evaluation.
+cachedir : str or None
+    Directory that was used for caching.
 result_prefix : str
     A unique prefix (consisting of date and time), used for instance for saving 
     the result in a file.
@@ -175,6 +178,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                     seeds=result_seeds,
                     script=([s[1] for s in inspect.stack() if os.path.basename(s[1]) != 'plotter.py'] + [None])[0],
                     repetitions=repetitions,
+                    cachedir=cachedir,
                     result_prefix=result_prefix)
     
     return result
@@ -343,6 +347,9 @@ def plot_result(result, save_plot=True, show_plot=True):
     cmap = plt.get_cmap('jet')
 
     if len(numeric_iter_args) == 0:
+        #
+        # bar plot
+        #
         assert len(non_numeric_iter_args) >= 1
         x_values = np.arange(result.values.shape[0])
         indices_per_axis = [[slice(None)]] + [range(len(values)) for values in result.iter_args.values()[1:]]
@@ -362,6 +369,9 @@ def plot_result(result, save_plot=True, show_plot=True):
             plt.legend(legend, loc='best')
         plt.xlabel(non_numeric_iter_args.keys()[0])
     elif len(numeric_iter_args) == 1:
+        #
+        # regular line plot
+        #
         indices_per_axis = [[slice(None)] if _all_numeric(values) else range(len(values)) for values in result.iter_args.values()]
         index_tuples = list(itertools.product(*indices_per_axis))
         for i, index_tuple in enumerate(index_tuples):
@@ -380,6 +390,9 @@ def plot_result(result, save_plot=True, show_plot=True):
             plt.legend(legend, loc='best')
         plt.xlabel(numeric_iter_args.keys()[0])
     elif len(numeric_iter_args) == 2:
+        # 
+        # 2d plot
+        # 
         assert len(non_numeric_iter_args) == 0
         result_values = np.mean(result.values, axis=-1)
         plt.imshow(result_values.T, origin='lower', cmap=cmap)
@@ -403,6 +416,8 @@ def plot_result(result, save_plot=True, show_plot=True):
     plotted_args = result.kwargs.copy()
     if result.repetitions > 1:
         plotted_args['repetitions'] = result.repetitions
+    if result.cachedir is not None:
+        plotted_args['cachedir'] = result.cachedir
     parameter_text = 'Parameters: %s' % str.join(', ', ['%s=%s' % (k,v) for k,v in plotted_args.items()])
     parameter_text = str.join('\n', textwrap.wrap(parameter_text, 100))
     plt.title('Time: %s - %s (%s)\n' % (time_start_str, time_stop_str, time_delta) + 
