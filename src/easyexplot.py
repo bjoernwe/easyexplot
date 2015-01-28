@@ -7,14 +7,13 @@ import itertools
 import multiprocessing
 import numpy as np
 import os
-import pickle
 import sys
 import textwrap
 import time
 import traceback
 
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 
 RESULT_PATH = 'easyexplot_results'
 
@@ -290,7 +289,7 @@ def _f_wrapper_timed(wrapped_func, wrapped_hash, **kwargs):
 
 
 
-def plot(experiment_function, repetitions=1, processes=None, argument_order=None, show_plot=True, save_plot=False, cachedir=None, **kwargs):
+def plot(experiment_function, repetitions=1, processes=None, argument_order=None, cachedir=None, plot_elapsed_time=False, show_plot=True, save_plot=False, **kwargs):
     """
     Plots the real-valued function f using the given keyword arguments. At least
     one of the arguments must be an iterable (for instance a list of integers), 
@@ -310,13 +309,16 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
         Some of the iterable argument names may be given in a list to force a
         certain order. Without this, Python's kwargs have an undefined order 
         which may result in plots other than intended.
+    cachedir : str, optional
+        If a cache directory is given, joblib.Memory is used to cache the
+        results of experiments in that directory.
+    plot_elapsed_time : bool, optional
+        Indicated whether the elapsed time is plotted instead of the actual
+        result.
     save_result : bool, optional
         If True, the pickled result is stored in `RESULT_PATH` (default: False).
     show_plot : bool, optional
         Indicates whether pyplot.show() is called or not (default: True).
-    cachedir : str, optional
-        If a cache directory is given, joblib.Memory is used to cache the
-        results of experiments in that directory.
     kwargs : dict, optional
         Keyword arguments passed to function `experiment_function`. If a `seed`
         argument is given and the experiment is repeated more than once, the
@@ -340,12 +342,12 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
     if result is None:
         return
 
-    plot_result(result, save_plot=save_plot, show_plot=show_plot)
+    plot_result(result, plot_elapsed_time=plot_elapsed_time, save_plot=save_plot, show_plot=show_plot)
     return result
 
 
 
-def plot_result(result, save_plot=True, show_plot=True):
+def plot_result(result, plot_elapsed_time=False, save_plot=True, show_plot=True):
     """
     Plots the result of an experiment.
     
@@ -353,6 +355,9 @@ def plot_result(result, save_plot=True, show_plot=True):
     ----------
     result : Result
         The result to plot.
+    plot_elapsed_time : bool, optional
+        Indicated whether the elapsed time is plotted instead of the actual
+        result.
     show_plot : bool, optional
         Indicates whether pyplot.show() is called or not (default: True).
     save_plot : bool, optional
@@ -374,19 +379,25 @@ def plot_result(result, save_plot=True, show_plot=True):
 
     # cmap for plots
     cmap = plt.get_cmap('jet')
+    
+    # wither work with function values or with elapsed times
+    if plot_elapsed_time:
+        data = result.elapsed_times
+    else:
+        data = result.values
 
     if len(numeric_iter_args) == 0:
         #
         # bar plot
         #
         assert len(non_numeric_iter_args) >= 1
-        x_values = np.arange(result.values.shape[0])
+        x_values = np.arange(data.shape[0])
         indices_per_axis = [[slice(None)]] + [range(len(values)) for values in result.iter_args.values()[1:]]
         index_tuples = list(itertools.product(*indices_per_axis))
         width = .8 / len(index_tuples)
         for i, index_tuple in enumerate(index_tuples):
-            y_values = np.mean(result.values[index_tuple], axis=-1)
-            y_errors = np.std(result.values[index_tuple], axis=-1)
+            y_values = np.mean(data[index_tuple], axis=-1)
+            y_errors = np.std(data[index_tuple], axis=-1)
             plt.bar(x_values + i*width, y_values, yerr=y_errors, width=width, color=cmap(1.*i/len(index_tuples)))
         plt.gca().set_xticks(np.arange(len(x_values)) + .4)
         plt.gca().set_xticklabels([str(value) for value in non_numeric_iter_args.values()[0]])
@@ -405,9 +416,9 @@ def plot_result(result, save_plot=True, show_plot=True):
         index_tuples = list(itertools.product(*indices_per_axis))
         for i, index_tuple in enumerate(index_tuples):
             x_values = numeric_iter_args.values()[0]
-            y_values = np.mean(result.values[index_tuple], axis=-1)
+            y_values = np.mean(data[index_tuple], axis=-1)
             if result.repetitions > 1:
-                y_errors = np.std(result.values[index_tuple], axis=-1)
+                y_errors = np.std(data[index_tuple], axis=-1)
                 plt.errorbar(x_values, y_values, yerr=y_errors, linewidth=1., color=cmap(1.*i/len(index_tuples)))
             else:
                 plt.plot(x_values, y_values, linewidth=1., color=cmap(1.*i/len(index_tuples)))
@@ -423,7 +434,7 @@ def plot_result(result, save_plot=True, show_plot=True):
         # 2d plot
         # 
         assert len(non_numeric_iter_args) == 0
-        result_values = np.mean(result.values, axis=-1)
+        result_values = np.mean(data, axis=-1)
         plt.imshow(result_values.T, origin='lower', cmap=cmap)
         plt.xlabel(numeric_iter_args.keys()[0])
         plt.ylabel(numeric_iter_args.keys()[1])
@@ -447,6 +458,8 @@ def plot_result(result, save_plot=True, show_plot=True):
         plotted_args['repetitions'] = result.repetitions
     if result.cachedir is not None:
         plotted_args['cachedir'] = result.cachedir
+    if plot_elapsed_time:
+        plotted_args['plot_elapsed_time'] = plot_elapsed_time
     parameter_text = 'Parameters: %s' % str.join(', ', ['%s=%s' % (k,v) for k,v in plotted_args.items()])
     parameter_text = str.join('\n', textwrap.wrap(parameter_text, 100))
     plt.title('Time: %s - %s (%s)\n' % (time_start_str, time_stop_str, time_delta) + 
