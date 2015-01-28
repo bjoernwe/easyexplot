@@ -418,7 +418,7 @@ def plot_result(result, save_plot=True, show_plot=True):
                 legend.append(str.join(', ', ["%s = %s" % (name, value) for (name, value) in name_value_combination]))
             plt.legend(legend, loc='best')
         plt.xlabel(numeric_iter_args.keys()[0])
-    elif len(numeric_iter_args) == 2:
+    elif len(numeric_iter_args) == 2 and len(non_numeric_iter_args) == 0:
         # 
         # 2d plot
         # 
@@ -428,7 +428,7 @@ def plot_result(result, save_plot=True, show_plot=True):
         plt.xlabel(numeric_iter_args.keys()[0])
         plt.ylabel(numeric_iter_args.keys()[1])
     else:
-        sys.stderr.write('Error: Do not know (yet) how to plot a result with more than two iterables.')
+        sys.stderr.write('Error: Do not know (yet) how to plot a result with %d numeric iterables and %d others.' % (len(numeric_iter_args), len(non_numeric_iter_args)))
         return
         
     # calculate running time
