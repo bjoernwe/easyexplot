@@ -99,15 +99,19 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
         A structure summarizing the result of the evaluation. 
     """
     
-    # get default arguments of function f and update them with given ones
-    #
-    # this is not strictly necessary but otherwise the argument lists lacks
-    # the default ones which should be included in the plot
+    # create a dictionary with all the given arguments as well as the implicit
+    # ones with default values
     fargspecs = inspect.getargspec(experiment_function)
     fkwargs = {}
     if fargspecs.defaults is not None:
         fkwargs.update(dict(zip(fargspecs.args[-len(fargspecs.defaults):], fargspecs.defaults)))
     fkwargs.update(kwargs)
+    
+    # warn if random experiment is cached without a seed
+    if repetitions > 1 and cachedir is not None and fkwargs.get('seed', None) is None:
+        print "Warning: You are using a cache and more than one repetition, which implies\n" + \
+                "a stochastic problem. This combination only makes sense if your experiment\n" + \
+                "takes a seed value."
     
     # OrderedDict of argument names and values
     iter_args = collections.OrderedDict()
@@ -239,7 +243,7 @@ def _f_wrapper(args, iter_arg_names, experiment_function, repetitions, cachedir=
     experiment_function_cached = experiment_function
     if cachedir is not None:
         import joblib
-        memory = joblib.Memory(cachedir=cachedir)
+        memory = joblib.Memory(cachedir=cachedir, verbose=0)
         experiment_function_cached = memory.cache(experiment_function)
     
     # execute experiment
