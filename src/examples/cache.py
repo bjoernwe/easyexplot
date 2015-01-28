@@ -5,7 +5,7 @@ import easyexplot as eep
 
 
 
-def my_experiment(x, f='sin', shift=False, seed=None):
+def my_experiment(x, seed=None):
     """
     A simple example for an experiment function with seed.
     """
@@ -18,16 +18,7 @@ def my_experiment(x, f='sin', shift=False, seed=None):
     time.sleep(1)
     
     # invent some results
-    if f == 'sin':
-        result_value = np.sin(x)
-    elif f == 'cos':
-        result_value = np.cos(x)
-    else:
-        result_value = 0
-    if shift:
-        result_value += .3
-    result_value += .5 * np.random.randn()
-    return result_value
+    return np.sin(x) + .5 * np.random.randn()
 
 
 
