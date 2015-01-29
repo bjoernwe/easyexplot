@@ -13,7 +13,7 @@ import time
 import traceback
 
 
-__version__ = '0.3.2'
+__version__ = '0.3.3'
 
 RESULT_PATH = 'easyexplot_results'
 
