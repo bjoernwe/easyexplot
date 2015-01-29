@@ -20,7 +20,7 @@ def main():
     """
     Plots how long the experiment took for execution.
     """
-    repetitions = 10
+    repetitions = 5
     
     # plot varying 'x' and cache the results
     eep.plot(my_experiment, 
