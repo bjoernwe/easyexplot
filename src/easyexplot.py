@@ -13,7 +13,7 @@ import time
 import traceback
 
 
-__version__ = '0.3.2'
+__version__ = '0.3.3'
 
 RESULT_PATH = 'easyexplot_results'
 
@@ -25,6 +25,7 @@ Result = collections.namedtuple('Result', ['values',
                                            'elapsed_times',
                                            'seeds',
                                            'script', 
+                                           'function_name',
                                            'repetitions',
                                            'cachedir', 
                                            'result_prefix'])
@@ -52,6 +53,8 @@ seeds : array
     Like `values` and `execution_times` but containing the used seed values.
 script : str
     Name of the calling script.
+function_name : str
+    Name of the experiment.
 repetitions : int
     Number of repetitions used for evaluation.
 cachedir : str or None
@@ -181,6 +184,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                     elapsed_times=result_times,
                     seeds=result_seeds,
                     script=([s[1] for s in inspect.stack() if os.path.basename(s[1]) != 'plotter.py'] + [None])[0],
+                    function_name=experiment_function.__name__,
                     repetitions=repetitions,
                     cachedir=cachedir,
                     result_prefix=result_prefix)
@@ -408,6 +412,10 @@ def plot_result(result, plot_elapsed_time=False, save_plot=True, show_plot=True)
                 legend.append(str.join(', ', ["%s = %s" % (name, value) for (name, value) in name_value_combination]))
             plt.legend(legend, loc='best')
         plt.xlabel(non_numeric_iter_args.keys()[0])
+        if plot_elapsed_time:
+            plt.ylabel('elapsed time [ms]')
+        else:
+            plt.ylabel(result.function_name)
     elif len(numeric_iter_args) == 1:
         #
         # regular line plot
@@ -428,7 +436,12 @@ def plot_result(result, plot_elapsed_time=False, save_plot=True, show_plot=True)
             for name_value_combination in itertools.product(*non_numeric_name_value_lists):
                 legend.append(str.join(', ', ["%s = %s" % (name, value) for (name, value) in name_value_combination]))
             plt.legend(legend, loc='best')
-        plt.xlabel(numeric_iter_args.keys()[0])
+        numeric_iter_arg_name = numeric_iter_args.keys()[0]
+        plt.xlabel(numeric_iter_arg_name)
+        if plot_elapsed_time:
+            plt.ylabel('elapsed time [ms]')
+        else:
+            plt.ylabel('%s(%s)' % (result.function_name, numeric_iter_arg_name))
     elif len(numeric_iter_args) == 2 and len(non_numeric_iter_args) == 0:
         # 
         # 2d plot
@@ -538,28 +551,29 @@ def main():
     save_plot = False
     processes = None
     cachedir = '/tmp'
+    plot_elapsed_time = True
     
     # regular call of the experiment    
     print my_experiment(x=0, f='sin', seed=seed, shift=False)
 
     # plot with varying x
-    plot(my_experiment, x=range(10), f='sin', seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir)
+    plot(my_experiment, x=range(10), f='sin', seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
     
     # plot with varying x and f
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
     
     # plot with varying x as well as f and shift
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
 
     # plot with varying x as well as f and shift, but force a certain order
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], argument_order=['f', 'shift'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], argument_order=['f', 'shift'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
     
     # bar plot for x=0 with varying f and shift (as well as forced order of parameters)
-    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir)
-    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, argument_order=['f'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir)
+    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
+    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, argument_order=['f'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
     
     # 2d plot
-    plot(my_experiment, x=range(10), y=range(10), seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir)
+    plot(my_experiment, x=range(10), y=range(10), seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
 
 
 
