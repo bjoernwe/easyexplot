@@ -25,6 +25,7 @@ Result = collections.namedtuple('Result', ['values',
                                            'elapsed_times',
                                            'seeds',
                                            'script', 
+                                           'function_name',
                                            'repetitions',
                                            'cachedir', 
                                            'result_prefix'])
@@ -52,6 +53,8 @@ seeds : array
     Like `values` and `execution_times` but containing the used seed values.
 script : str
     Name of the calling script.
+function_name : str
+    Name of the experiment.
 repetitions : int
     Number of repetitions used for evaluation.
 cachedir : str or None
@@ -181,6 +184,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                     elapsed_times=result_times,
                     seeds=result_seeds,
                     script=([s[1] for s in inspect.stack() if os.path.basename(s[1]) != 'plotter.py'] + [None])[0],
+                    function_name=experiment_function.__name__,
                     repetitions=repetitions,
                     cachedir=cachedir,
                     result_prefix=result_prefix)
@@ -408,6 +412,10 @@ def plot_result(result, plot_elapsed_time=False, save_plot=True, show_plot=True)
                 legend.append(str.join(', ', ["%s = %s" % (name, value) for (name, value) in name_value_combination]))
             plt.legend(legend, loc='best')
         plt.xlabel(non_numeric_iter_args.keys()[0])
+        if plot_elapsed_time:
+            plt.ylabel('elapsed time')
+        else:
+            plt.ylabel(result.function_name)
     elif len(numeric_iter_args) == 1:
         #
         # regular line plot
@@ -428,7 +436,12 @@ def plot_result(result, plot_elapsed_time=False, save_plot=True, show_plot=True)
             for name_value_combination in itertools.product(*non_numeric_name_value_lists):
                 legend.append(str.join(', ', ["%s = %s" % (name, value) for (name, value) in name_value_combination]))
             plt.legend(legend, loc='best')
-        plt.xlabel(numeric_iter_args.keys()[0])
+        numeric_iter_arg_name = numeric_iter_args.keys()[0]
+        plt.xlabel(numeric_iter_arg_name)
+        if plot_elapsed_time:
+            plt.ylabel('elapsed time')
+        else:
+            plt.ylabel('%s(%s)' % (result.function_name, numeric_iter_arg_name))
     elif len(numeric_iter_args) == 2 and len(non_numeric_iter_args) == 0:
         # 
         # 2d plot
