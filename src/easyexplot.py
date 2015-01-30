@@ -23,7 +23,6 @@ Result = collections.namedtuple('Result', ['values',
                                            'iter_args', 
                                            'kwargs', 
                                            'elapsed_times',
-                                           'seeds',
                                            'script', 
                                            'function_name',
                                            'repetitions',
@@ -49,8 +48,6 @@ kwargs : dict
 elapsed_times : array
     Array containing execution times (in milliseconds) for each function 
     evaluation. The shape is the same as for `values`.
-seeds : array
-    Like `values` and `execution_times` but containing the used seed values.
 script : str
     Name of the calling script.
 function_name : str
@@ -79,7 +76,13 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
         A function that takes the given `kwargs` and returns double or int.
     repetitions : int, optional
         Defines how often `experiment_function` is evaluated. Useful for 
-        calculating mean and standard deviation in noisy experiments.
+        calculating mean and standard deviation in noisy experiments. Note 
+        though, that noisy experiments need proper initialization of the random
+        number generator (RNG) to produce meaningful results. Your experiment 
+        should take a seed value as well as an additional argument 
+        `repetition_index` which will be set by EasyExPlot. The RNG then must 
+        be initialized with a value that depends on all your input arguments, 
+        including `seed` and `repetition_index`.
     processes : int or None, optional
         Number of CPU cores used. If None (default), all but one cores are used.
     argument_order : list of strings
@@ -111,10 +114,21 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     fkwargs.update(kwargs)
     
     # warn if random experiment is cached without a seed
-    if repetitions > 1 and cachedir is not None and fkwargs.get('seed', None) is None:
+    if repetitions > 1 and cachedir is not None and 'repetition_index' not in fkwargs:
         print "Warning: You are using a cache and more than one repetition, which implies\n" + \
-                "a stochastic problem. This combination only makes sense if your experiment\n" + \
-                "takes a seed value."
+                "a stochastic problem. To make this combination work properly, your experiment" + \
+                "should have an additional parameter repetition_index which will be set by" + \
+                "EasyExPlot and should be included in the initialization of your random number" + \
+                "generator."
+                
+    # warn if repetition_index already had an value  
+    if fkwargs.get('repetition_index', None) is not None:
+        print "Warning: The argument repetition_index will be overwritten."
+
+    # remove repetition_index from regular parameters    
+    set_repetition_index = 'repetition_index' in fkwargs
+    if set_repetition_index:
+        fkwargs.pop('repetition_index')
     
     # OrderedDict of argument names and values
     iter_args = collections.OrderedDict()
@@ -122,10 +136,6 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     if argument_order is not None:
         iter_args.update([(name, None) for name in argument_order if name in fkwargs and _is_iterable(fkwargs[name])])
     iter_args.update({name: fkwargs.pop(name) for (name, values) in fkwargs.items() if _is_iterable(values)})
-    
-    # make sure, all arguments are defined for function f
-    undefined_args = set(fargspecs.args) - set(fkwargs.keys()) - set(iter_args.keys())
-    assert len(undefined_args) == 0
     
     # here we create a list of tuples, containing all combinations of input 
     # arguments and repetition index: 
@@ -136,7 +146,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     f_partial = functools.partial(_f_wrapper, 
                                   iter_arg_names=iter_args.keys(), 
                                   experiment_function=experiment_function,
-                                  repetitions=repetitions,
+                                  set_repetition_index=set_repetition_index,
                                   cachedir=cachedir,
                                   **fkwargs)
     
@@ -159,14 +169,12 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     result_array = np.array(result_list)
     result_values = np.array(result_array[:,0], dtype='float')
     result_times = np.array(result_array[:,1], dtype='float')
-    result_seeds = result_array[:,2]
     
     # re-arrange ndim array
     iter_args_values_lengths = [len(values) for values in iter_args.values()]
     values_shape = tuple(iter_args_values_lengths + [repetitions])
     result_values = np.reshape(result_values, values_shape)
     result_times = np.reshape(result_times, values_shape)
-    result_seeds = np.reshape(result_seeds, values_shape)
         
     # calculate a prefix for result files
     timestamp = time.strftime('%Y%m%d_%H%M%S', time_start)
@@ -182,7 +190,6 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                     iter_args=iter_args,
                     kwargs=fkwargs,
                     elapsed_times=result_times,
-                    seeds=result_seeds,
                     script=([s[1] for s in inspect.stack() if os.path.basename(s[1]) != 'plotter.py'] + [None])[0],
                     function_name=experiment_function.__name__,
                     repetitions=repetitions,
@@ -193,7 +200,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
 
 
 
-def _f_wrapper(args, iter_arg_names, experiment_function, repetitions, cachedir=None, **kwargs):
+def _f_wrapper(args, iter_arg_names, experiment_function, set_repetition_index, cachedir=None, **kwargs):
     """
     [Intended for internal use only] A simple wrapper for the experiment 
     function that allows having specific arguments ('iter_args') as the first 
@@ -212,8 +219,9 @@ def _f_wrapper(args, iter_arg_names, experiment_function, repetitions, cachedir=
         Names of the arguments
     experiment_function : function
         The function to call as experiment_function(iter_arg_names[0]=args[0], iter_arg_names[1]=args[1], ..., **kwargs).
-    repetitions : int
-        number of repetitions for experiment
+    set_repetition_index : bool
+        Indicates whether the current repetition_index is given as an argument
+        to the experiment function.
     cachedir : str, optional
         If a cache directory is given, joblib.Memory is used to cache the
         results of experiments in that directory.
@@ -228,21 +236,15 @@ def _f_wrapper(args, iter_arg_names, experiment_function, repetitions, cachedir=
     # reduce niceness of process
     os.nice(kwargs.pop('niceness', 20))
     
-    # get repetition index
-    repetition_index = args[-1]
+    # set repetition index
+    if set_repetition_index:
+        kwargs['repetition_index'] = args[-1]
     
     # set current value for iterable arguments
     if iter_arg_names is not None:
         for i, iter_arg_name in enumerate(iter_arg_names):
             kwargs[iter_arg_name] = args[i]
 
-    # initialize a seed that is uniquely defined by the set of input arguments
-    seed = kwargs.get('seed', None)
-    if seed is not None and repetitions > 1:
-        seed_arguments = frozenset(kwargs.items() + [('repetition_index', repetition_index)])
-        seed = abs(hash(seed_arguments))
-        kwargs['seed'] = seed
-    
     # cache function with joblib. the hash is calculated manually, because due
     # to the wrapper, joblib would not detect a modified experiment_function
     exp_func_hash = None
@@ -260,7 +262,7 @@ def _f_wrapper(args, iter_arg_names, experiment_function, repetitions, cachedir=
     except Exception as e:
         sys.stderr.write(traceback.format_exc())
         raise e
-    return (result, elapsed_time, seed)
+    return (result, elapsed_time)
 
 
 
@@ -306,7 +308,13 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
         A function that takes the given `kwargs` and returns double or int.
     repetitions : int, optional
         Defines how often `experiment_function` is evaluated. Useful for 
-        calculating mean and standard deviation in noisy experiments.
+        calculating mean and standard deviation in noisy experiments. Note 
+        though, that noisy experiments need proper initialization of the random
+        number generator (RNG) to produce meaningful results. Your experiment 
+        should take a seed value as well as an additional argument 
+        `repetition_index` which will be set by EasyExPlot. The RNG then must 
+        be initialized with a value that depends on all your input arguments, 
+        including `seed` and `repetition_index`.
     processes : int or None, optional
         Number of CPU cores used. If None (default), all but one cores are used.
     argument_order : list of strings
@@ -519,12 +527,12 @@ def _is_iterable(x):
 
 
 
-def my_experiment(x, y=0, f='sin', shift=False, seed=None):
+def my_experiment(x, y=0, f='sin', shift=False, seed=None, repetition_index=None):
     """
     A simple example for an experiment function.
     """
-    print 'got seed:', seed
-    np.random.seed(seed)
+    unique_seed = abs(hash((x, y, f, shift, seed, repetition_index)))
+    np.random.seed(unique_seed)
 
     time.sleep(1)
     
@@ -551,7 +559,7 @@ def main():
     save_plot = False
     processes = None
     cachedir = '/tmp'
-    plot_elapsed_time = True
+    plot_elapsed_time = False
     
     # regular call of the experiment    
     print my_experiment(x=0, f='sin', seed=seed, shift=False)
