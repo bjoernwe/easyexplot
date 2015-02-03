@@ -379,7 +379,7 @@ def plot_result(result, plot_elapsed_time=False, save_plot=True, show_plot=True)
     Returns
     -------
     Result
-        Either the result given or the unpickled one. 
+        A result produced by `plot`. 
     """
 
     # import here makes evaluate() independent from matplotlib
