@@ -295,7 +295,7 @@ def _f_wrapper_timed(wrapped_func, wrapped_hash, **kwargs):
 
 
 
-def plot(experiment_function, repetitions=1, processes=None, argument_order=None, cachedir=None, plot_elapsed_time=False, show_plot=True, save_plot=False, **kwargs):
+def plot(experiment_function, repetitions=1, processes=None, argument_order=None, non_numeric_args=[], cachedir=None, plot_elapsed_time=False, show_plot=True, save_plot=False, **kwargs):
     """
     Plots the real-valued function f using the given keyword arguments. At least
     one of the arguments must be an iterable (for instance a list of integers), 
@@ -348,18 +348,18 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
     result = evaluate(experiment_function, 
                       repetitions=repetitions, 
                       processes=processes, 
-                      argument_order=argument_order, 
+                      argument_order=argument_order,
                       cachedir=cachedir, 
                       **kwargs)
     if result is None:
         return
 
-    plot_result(result, plot_elapsed_time=plot_elapsed_time, save_plot=save_plot, show_plot=show_plot)
+    plot_result(result, non_numeric_args=non_numeric_args, plot_elapsed_time=plot_elapsed_time, save_plot=save_plot, show_plot=show_plot)
     return result
 
 
 
-def plot_result(result, plot_elapsed_time=False, save_plot=True, show_plot=True):
+def plot_result(result, non_numeric_args=[], plot_elapsed_time=False, save_plot=True, show_plot=True):
     """
     Plots the result of an experiment.
     
@@ -386,8 +386,10 @@ def plot_result(result, plot_elapsed_time=False, save_plot=True, show_plot=True)
     from matplotlib import pyplot as plt
     
     # sort the iterable arguments according to whether they are numeric
-    numeric_iter_args = collections.OrderedDict([(name, values) for (name, values) in result.iter_args.items() if _all_numeric(values)])
-    non_numeric_iter_args = collections.OrderedDict([(name, values) for (name, values) in result.iter_args.items() if not _all_numeric(values)])
+    if non_numeric_args is None:
+        non_numeric_args = []
+    numeric_iter_args = collections.OrderedDict([(name, values) for (name, values) in result.iter_args.items() if _all_numeric(values) and not name in non_numeric_args])
+    non_numeric_iter_args = collections.OrderedDict([(name, values) for (name, values) in result.iter_args.items() if not name in numeric_iter_args])
 
     # cmap for plots
     cmap = plt.get_cmap('jet')
@@ -428,7 +430,7 @@ def plot_result(result, plot_elapsed_time=False, save_plot=True, show_plot=True)
         #
         # regular line plot
         #
-        indices_per_axis = [[slice(None)] if _all_numeric(values) else range(len(values)) for values in result.iter_args.values()]
+        indices_per_axis = [[slice(None)] if name in numeric_iter_args else range(len(values)) for (name, values) in result.iter_args.items()]
         index_tuples = list(itertools.product(*indices_per_axis))
         for i, index_tuple in enumerate(index_tuples):
             x_values = numeric_iter_args.values()[0]
