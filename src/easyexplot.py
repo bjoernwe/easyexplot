@@ -12,6 +12,8 @@ import textwrap
 import time
 import traceback
 
+#sys.path.append('/home/weghebvc/workspace/git/easyexplot/src/')
+
 
 __version__ = '0.3.3'
 
@@ -63,7 +65,7 @@ result_prefix : str
 
 
 
-def evaluate(experiment_function, repetitions=1, processes=None, argument_order=None, cachedir=None, **kwargs):
+def evaluate(experiment_function, repetitions=1, processes=None, argument_order=None, cachedir=None, ipython_profile=None, **kwargs):
     """
     Evaluates the real-valued function f using the given keyword arguments. 
     Usually, one or more of the arguments are iterables (for instance a list of 
@@ -92,6 +94,9 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     cachedir : str, optional
         If a cache directory is given, joblib.Memory is used to cache the
         results of experiments in that directory.
+    ipython_profile : str, optional
+        If specified, IPython's parallel map function is used with this profile.
+        Otherwise a multiprocessing map function is used.
     kwargs : dict, optional
         Keyword arguments passed to function `experiment_function`. If a `seed`
         argument is given and the experiment is repeated more than once, the
@@ -156,13 +161,24 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
             
     # start a pool of processes
     time_start = time.localtime()
-    if processes <= 1:
+    if processes <= 1 and ipython_profile is None:
         result_list = map(f_partial, iter_args_values_tupled)
     else:
-        pool = multiprocessing.Pool(processes=processes)
-        result_list = pool.map(f_partial, iter_args_values_tupled, chunksize=1)
-        pool.close()
-        pool.join()
+        if ipython_profile is None:
+            pool = multiprocessing.Pool(processes=processes)
+            result_list = pool.map(f_partial, iter_args_values_tupled, chunksize=1)
+            pool.close()
+            pool.join()
+        else:
+            import IPython.parallel
+            #import IPython.parallel.util
+            #f_partial = IPython.parallel.util.interactive(f_partial)
+            client = IPython.parallel.Client(profile=ipython_profile)
+            view = client.load_balanced_view()
+            #view.set_flags(retries=4)
+            #view.set_flags(timeout=30)
+            result_list = view.map_sync(f_partial, iter_args_values_tupled)
+            
     time_stop = time.localtime()
     
     # separate the result value from runtime measurement
@@ -295,7 +311,7 @@ def _f_wrapper_timed(wrapped_func, wrapped_hash, **kwargs):
 
 
 
-def plot(experiment_function, repetitions=1, processes=None, argument_order=None, non_numeric_args=[], cachedir=None, plot_elapsed_time=False, show_plot=True, save_plot=False, **kwargs):
+def plot(experiment_function, repetitions=1, processes=None, argument_order=None, non_numeric_args=[], cachedir=None, ipython_profile=None, plot_elapsed_time=False, show_plot=True, save_plot=False, **kwargs):
     """
     Plots the real-valued function f using the given keyword arguments. At least
     one of the arguments must be an iterable (for instance a list of integers), 
@@ -350,6 +366,7 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
                       processes=processes, 
                       argument_order=argument_order,
                       cachedir=cachedir, 
+                      ipython_profile=ipython_profile,
                       **kwargs)
     if result is None:
         return
