@@ -13,7 +13,7 @@ import time
 import traceback
 
 
-__version__ = '0.3.3'
+__version__ = '0.4.0'
 
 RESULT_PATH = 'easyexplot_results'
 
@@ -354,12 +354,12 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
     if result is None:
         return
 
-    plot_result(result, non_numeric_args=non_numeric_args, plot_elapsed_time=plot_elapsed_time, save_plot=save_plot, show_plot=show_plot)
+    plot_result(result, plot_elapsed_time=plot_elapsed_time, save_plot=save_plot, show_plot=show_plot)
     return result
 
 
 
-def plot_result(result, non_numeric_args=[], plot_elapsed_time=False, save_plot=True, show_plot=True):
+def plot_result(result, plot_elapsed_time=False, save_plot=True, show_plot=True):
     """
     Plots the result of an experiment.
     
@@ -385,86 +385,60 @@ def plot_result(result, non_numeric_args=[], plot_elapsed_time=False, save_plot=
     # import here makes evaluate() independent from matplotlib
     from matplotlib import pyplot as plt
     
-    # sort the iterable arguments according to whether they are numeric
-    if non_numeric_args is None:
-        non_numeric_args = []
-    numeric_iter_args = collections.OrderedDict([(name, values) for (name, values) in result.iter_args.items() if _all_numeric(values) and not name in non_numeric_args])
-    non_numeric_iter_args = collections.OrderedDict([(name, values) for (name, values) in result.iter_args.items() if not name in numeric_iter_args])
-
-    # cmap for plots
-    cmap = plt.get_cmap('jet')
-    
     # wither work with function values or with elapsed times
     if plot_elapsed_time:
         data = result.elapsed_times
     else:
         data = result.values
 
-    if len(numeric_iter_args) == 0:
-        #
-        # bar plot
-        #
-        assert len(non_numeric_iter_args) >= 1
-        x_values = np.arange(data.shape[0])
-        indices_per_axis = [[slice(None)]] + [range(len(values)) for values in result.iter_args.values()[1:]]
-        index_tuples = list(itertools.product(*indices_per_axis))
-        width = .8 / len(index_tuples)
-        for i, index_tuple in enumerate(index_tuples):
-            y_values = np.mean(data[index_tuple], axis=-1)
-            y_errors = np.std(data[index_tuple], axis=-1)
-            plt.bar(x_values + i*width, y_values, yerr=y_errors, width=width, color=cmap(1.*i/len(index_tuples)))
-        plt.gca().set_xticks(np.arange(len(x_values)) + .4)
-        plt.gca().set_xticklabels([str(value) for value in non_numeric_iter_args.values()[0]])
-        legend = []
-        non_numeric_name_value_lists = [[(name, value) for value in values] for (name, values) in non_numeric_iter_args.items()[1:]]
-        if len(non_numeric_name_value_lists) >= 1:
-            for name_value_combination in itertools.product(*non_numeric_name_value_lists):
-                legend.append(str.join(', ', ["%s = %s" % (name, value) for (name, value) in name_value_combination]))
-            plt.legend(legend, loc='best')
-        plt.xlabel(non_numeric_iter_args.keys()[0])
-        if plot_elapsed_time:
-            plt.ylabel('elapsed time [ms]')
-        else:
-            plt.ylabel(result.function_name)
-    elif len(numeric_iter_args) == 1:
+    # prepare indices for result array
+    assert len(result.iter_args) >= 1
+    indices_per_axis = [[slice(None)]] + [range(len(values)) for values in result.iter_args.values()[1:]]
+    index_tuples = list(itertools.product(*indices_per_axis))
+    
+    # cmap for plots
+    cmap = plt.get_cmap('jet')
+    
+    # line plot or bar plot?
+    if _all_numeric(result.iter_args.values()[0]):
         #
         # regular line plot
         #
-        indices_per_axis = [[slice(None)] if name in numeric_iter_args else range(len(values)) for (name, values) in result.iter_args.items()]
-        index_tuples = list(itertools.product(*indices_per_axis))
+        x_values = result.iter_args.values()[0]
         for i, index_tuple in enumerate(index_tuples):
-            x_values = numeric_iter_args.values()[0]
             y_values = np.mean(data[index_tuple], axis=-1)
             if result.repetitions > 1:
                 y_errors = np.std(data[index_tuple], axis=-1)
                 plt.errorbar(x_values, y_values, yerr=y_errors, linewidth=1., color=cmap(1.*i/len(index_tuples)))
             else:
                 plt.plot(x_values, y_values, linewidth=1., color=cmap(1.*i/len(index_tuples)))
-        legend = []
-        non_numeric_name_value_lists = [[(name, value) for value in values] for (name, values) in non_numeric_iter_args.items()]
-        if len(non_numeric_name_value_lists) >= 1:
-            for name_value_combination in itertools.product(*non_numeric_name_value_lists):
-                legend.append(str.join(', ', ["%s = %s" % (name, value) for (name, value) in name_value_combination]))
-            plt.legend(legend, loc='best')
-        numeric_iter_arg_name = numeric_iter_args.keys()[0]
-        plt.xlabel(numeric_iter_arg_name)
-        if plot_elapsed_time:
-            plt.ylabel('elapsed time [ms]')
-        else:
-            plt.ylabel('%s(%s)' % (result.function_name, numeric_iter_arg_name))
-    elif len(numeric_iter_args) == 2 and len(non_numeric_iter_args) == 0:
-        # 
-        # 2d plot
-        # 
-        assert len(non_numeric_iter_args) == 0
-        result_values = np.mean(data, axis=-1)
-        plt.imshow(result_values.T, origin='lower', cmap=cmap)
-        plt.xlabel(numeric_iter_args.keys()[0])
-        plt.ylabel(numeric_iter_args.keys()[1])
     else:
-        sys.stderr.write('Error: Do not know (yet) how to plot a result with %d numeric iterables and %d others.' % (len(numeric_iter_args), len(non_numeric_iter_args)))
-        return
-        
+        #
+        # bar plot
+        #
+        x_values = np.arange(data.shape[0])
+        width = .8 / len(index_tuples)
+        for i, index_tuple in enumerate(index_tuples):
+            y_values = np.mean(data[index_tuple], axis=-1)
+            y_errors = np.std(data[index_tuple], axis=-1)
+            plt.bar(x_values + i*width, y_values, yerr=y_errors, width=width, color=cmap(1.*i/len(index_tuples)))
+        plt.gca().set_xticks(np.arange(len(x_values)) + .4)
+        plt.gca().set_xticklabels([str(value) for value in result.iter_args.values()[0]])
+
+    # legend and labels for axis        
+    legend = []
+    name_value_lists = [[(name, value) for value in values] for (name, values) in result.iter_args.items()[1:]]
+    if len(name_value_lists) >= 1:
+        for name_value_combination in itertools.product(*name_value_lists):
+            legend.append(str.join(', ', ["%s = %s" % (name, value) for (name, value) in name_value_combination]))
+        plt.legend(legend, loc='best')
+    iter_arg_name = result.iter_args.keys()[0]
+    plt.xlabel(iter_arg_name)
+    if plot_elapsed_time:
+        plt.ylabel('elapsed time [ms]')
+    else:
+        plt.ylabel('%s(%s)' % (result.function_name, iter_arg_name))
+            
     # calculate running time
     time_diff = time.mktime(result.time_stop) - time.mktime(result.time_start)
     time_delta = datetime.timedelta(seconds=time_diff)
