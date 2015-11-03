@@ -39,7 +39,7 @@ def main():
              x=range(5), 
              f=['sin', 'cos'], 
              shift=[False, True], 
-             argument_order=['shift', 'f'], 
+             argument_order=['x', 'shift', 'f'], 
              repetitions=repetitions, 
              show_plot=False, 
              processes=processes)
@@ -50,7 +50,7 @@ def main():
              x=range(5), 
              f=['sin', 'cos'], 
              shift=[False, True], 
-             argument_order=['f', 'shift'], 
+             argument_order=['x', 'f', 'shift'], 
              repetitions=repetitions, 
              show_plot=True, 
              processes=processes)
