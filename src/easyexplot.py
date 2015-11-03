@@ -135,7 +135,10 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     # if parameters are ordered, then they are processed first
     if argument_order is not None:
         iter_args.update([(name, None) for name in argument_order if name in fkwargs and _is_iterable(fkwargs[name])])
-    iter_args.update({name: fkwargs.pop(name) for (name, values) in fkwargs.items() if _is_iterable(values)})
+    new_iter_args_dict = {name: fkwargs.pop(name) for (name, values) in fkwargs.items() if _is_iterable(values)}
+    new_iter_args_dict = sorted(new_iter_args_dict.items(), key=lambda x: len(x[1]), reverse=True)
+    iter_args.update(new_iter_args_dict)
+    del(new_iter_args_dict)
     
     # here we create a list of tuples, containing all combinations of input 
     # arguments and repetition index: 
