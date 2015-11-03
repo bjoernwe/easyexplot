@@ -297,7 +297,7 @@ def _f_wrapper_timed(wrapped_func, wrapped_hash, **kwargs):
 
 
 
-def plot(experiment_function, repetitions=1, processes=None, argument_order=None, non_numeric_args=[], cachedir=None, plot_elapsed_time=False, show_plot=True, save_plot=False, **kwargs):
+def plot(experiment_function, repetitions=1, processes=None, argument_order=None, cachedir=None, plot_elapsed_time=False, show_plot=True, save_plot=False, **kwargs):
     """
     Plots the real-valued function f using the given keyword arguments. At least
     one of the arguments must be an iterable (for instance a list of integers), 
@@ -322,7 +322,8 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
     argument_order : list of strings
         Some of the iterable argument names may be given in a list to force a
         certain order. Without this, Python's kwargs have an undefined order 
-        which may result in plots other than intended.
+        which may result in plots other than intended. Also, the first argument
+        determines if a line plot or a bar plot is used.
     cachedir : str, optional
         If a cache directory is given, joblib.Memory is used to cache the
         results of experiments in that directory.
