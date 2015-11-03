@@ -198,7 +198,6 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                     repetitions=repetitions,
                     cachedir=cachedir,
                     result_prefix=result_prefix)
-    
     return result
 
 
@@ -553,7 +552,7 @@ def main():
     plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
 
     # plot with varying x as well as f and shift, but force a certain order
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], argument_order=['f', 'shift'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], argument_order=['x', 'f', 'shift'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
     
     # bar plot for x=0 with varying f and shift (as well as forced order of parameters)
     plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
