@@ -42,7 +42,7 @@ time_start : time.struct_time
 time_stop : time.struct_time
     Timestamp after (parallel) evaluation stopped.
 iter_args : OrderedDict
-    Am ordered dictionary of all iterable argument names and there values. 
+    Am ordered dictionary of all iterable argument names and their values. 
 kwargs : dict
     Dictionary of all the non-iterable arguments used for evaluation.
 elapsed_times : array
