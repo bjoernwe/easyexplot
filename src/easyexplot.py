@@ -193,7 +193,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                     iter_args=iter_args,
                     kwargs=fkwargs,
                     elapsed_times=result_times,
-                    script=([s[1] for s in inspect.stack() if os.path.basename(s[1]) != 'plotter.py'] + [None])[0],
+                    script=([s[1] for s in inspect.stack() if os.path.basename(s[1]) != os.path.basename(__file__)] + [None])[0],
                     function_name=experiment_function.__name__,
                     repetitions=repetitions,
                     cachedir=cachedir,
