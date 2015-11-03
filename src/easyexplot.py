@@ -384,6 +384,10 @@ def plot_result(result, plot_elapsed_time=False, save_plot=True, show_plot=True)
     Result
         A result produced by `plot`. 
     """
+    
+    if len(result.iter_args) <= 0:
+        print 'Nothing to plot! At least one argument must be an iterable, e.g., a list of integers.'
+        return
 
     # import here makes evaluate() independent from matplotlib
     from matplotlib import pyplot as plt
@@ -395,7 +399,6 @@ def plot_result(result, plot_elapsed_time=False, save_plot=True, show_plot=True)
         data = result.values
 
     # prepare indices for result array
-    assert len(result.iter_args) >= 1
     indices_per_axis = [[slice(None)]] + [range(len(values)) for values in result.iter_args.values()[1:]]
     index_tuples = list(itertools.product(*indices_per_axis))
     
