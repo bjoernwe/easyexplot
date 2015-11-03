@@ -48,7 +48,7 @@ eep.plot(my_experiment, x=range(10), f=['sin', 'cos'],
 
 <img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163547_00.png" width="640px">
 
-That was easy. But what if the experiment doesn't have a numeric parameter like *x*? Then the result is plotted as bars:
+That was easy. But what if the result doesn't have varying numeric parameters like *x*? Then the result is plotted as bars:
 
 ```python
 eep.plot(my_experiment, f=['sin', 'cos'], shift=[False, True], 
