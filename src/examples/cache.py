@@ -5,25 +5,18 @@ import explot as ep
 
 
 
-def my_experiment(x, seed=None, repetition_index=None):
+def my_experiment(x, seed=None):
     """
     A simple example for an experiment function with seed.
     
     repetition_index as an parameter is set by ExPlot.
     """
-    
-    # Initialize RNG
-    # The seed should depend deterministically on all the input parameters.
-    # Without dependence on repetition_index, each repetition would look the 
-    # same. Without dependence on x, we wouldn't generate a noisy function but
-    # one that has the same shift everywhere.
-    unique_seed = abs(hash((x, seed, repetition_index)))
-    np.random.seed(unique_seed)
 
     # simulate heavy computation
     time.sleep(1)
     
     # invent some noisy results
+    np.random.seed(seed)
     return np.sin(x) + .5 * np.random.randn()
 
 
