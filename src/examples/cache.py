@@ -1,7 +1,7 @@
 import numpy as np
 import time
 
-import easyexplot as eep
+import explot as ep
 
 
 
@@ -9,7 +9,7 @@ def my_experiment(x, seed=None, repetition_index=None):
     """
     A simple example for an experiment function with seed.
     
-    repetition_index as an parameter is set by EasyExPlot.
+    repetition_index as an parameter is set by ExPlot.
     """
     
     # Initialize RNG
@@ -38,11 +38,11 @@ def main():
     cachedir = '/tmp'
     
     # plot varying 'x' and cache the results
-    eep.plot(my_experiment, 
-             x=range(10), 
-             seed=seed, 
-             repetitions=repetitions, 
-             cachedir=cachedir)
+    ep.plot(my_experiment, 
+            x=range(10), 
+            seed=seed, 
+            repetitions=repetitions, 
+            cachedir=cachedir)
     return
 
 
