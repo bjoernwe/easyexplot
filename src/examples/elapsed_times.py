@@ -1,6 +1,6 @@
 import time
 
-import easyexplot as eep
+import explot as ep
 
 
 
@@ -23,11 +23,11 @@ def main():
     repetitions = 5
     
     # plot varying 'x' and cache the results
-    eep.plot(my_experiment, 
-             x=range(10),
-             fast=[False, True], 
-             repetitions=repetitions,
-             plot_elapsed_time=True)
+    ep.plot(my_experiment, 
+            x=range(10),
+            fast=[False, True], 
+            repetitions=repetitions,
+            plot_elapsed_time=True)
     return
 
 

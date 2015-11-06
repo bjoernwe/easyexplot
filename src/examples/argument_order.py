@@ -2,7 +2,7 @@ import numpy as np
 
 from matplotlib import pyplot as plt
 
-import easyexplot as eep
+import explot as ep
 
 
 def my_experiment(x, f='sin', shift=False):
@@ -35,25 +35,25 @@ def main():
 
     # plot varying 'x' as well as 'shift' and 'f' in this order
     plt.subplot(1, 2, 1)
-    eep.plot(my_experiment, 
-             x=range(5), 
-             f=['sin', 'cos'], 
-             shift=[False, True], 
-             argument_order=['x', 'shift', 'f'], 
-             repetitions=repetitions, 
-             show_plot=False, 
-             processes=processes)
+    ep.plot(my_experiment, 
+            x=range(5), 
+            f=['sin', 'cos'], 
+            shift=[False, True], 
+            argument_order=['x', 'shift', 'f'], 
+            repetitions=repetitions, 
+            show_plot=False, 
+            processes=processes)
 
     # plot varying 'x' as well as 'f' and 'shift' in this order
     plt.subplot(1, 2, 2)
-    eep.plot(my_experiment, 
-             x=range(5), 
-             f=['sin', 'cos'], 
-             shift=[False, True], 
-             argument_order=['x', 'f', 'shift'], 
-             repetitions=repetitions, 
-             show_plot=True, 
-             processes=processes)
+    ep.plot(my_experiment, 
+            x=range(5), 
+            f=['sin', 'cos'], 
+            shift=[False, True], 
+            argument_order=['x', 'f', 'shift'], 
+            repetitions=repetitions, 
+            show_plot=True, 
+            processes=processes)
     return
 
 
