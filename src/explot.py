@@ -358,7 +358,7 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
 
 
 
-def plot_result(result, plot_elapsed_time=False, save_plot=True, show_plot=True):
+def plot_result(result, plot_elapsed_time=False, show_plot=True, save_plot=False):
     """
     Plots the result of an experiment.
     
