@@ -20,11 +20,11 @@
 
     <section class="main-content">
       <h1>
-<a id="easyexplot" class="anchor" href="#easyexplot" aria-hidden="true"><span class="octicon octicon-link"></span></a>EasyExPlot</h1>
+<a id="explot" class="anchor" href="#explot" aria-hidden="true"><span class="octicon octicon-link"></span></a>ExPlot</h1>
 
-<p>When running scientific experiments, you can often find yourself in the situation of calling the same functions again and again - only with different arguments. The code for these repeated experiments and their visualization easily becomes cumbersome and highly redundant. That's where EasyExPlot can help!</p>
+<p>When running scientific experiments, I often find myself in the situation of calling the same functions again and again - only with different arguments. The code for these repeated experiments and their visualization easily becomes cumbersome and highly redundant. That's where ExPlot is supposed to help.</p>
 
-<p>EasyExPlot is a small Python tool that helps you plot your experiments with different combinations of input arguments. The idea is to automatically recognize which arguments are varied between experiments, run all the experiments parallelized over all the cores of your machine, and visualize the results with properly labeled axes and everything.</p>
+<p>ExPlot is a small Python tool that helps you plot your experiments with different combinations of input arguments. The idea is to automatically recognize which arguments are varied between experiments, run all the experiments parallelized over all the cores of your machine, and visualize the results with properly labeled axes and everything.</p>
 
 <h3>
 <a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h3>
@@ -38,36 +38,38 @@
 
 <p>Now, evaluating and plotting this function for different arguments works as simple as this:</p>
 
-<div class="highlight highlight-source-python"><pre><span class="pl-k">import</span> easyexplot <span class="pl-k">as</span> eep
+<div class="highlight highlight-source-python"><pre><span class="pl-k">import</span> explot <span class="pl-k">as</span> ep
 
 <span class="pl-c"># plot function for all values of x in range(10)</span>
-eep.plot(my_experiment, <span class="pl-smi">x</span><span class="pl-k">=</span><span class="pl-c1">range</span>(<span class="pl-c1">10</span>), <span class="pl-smi">f</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>)</pre></div>
+ep.plot(my_experiment, <span class="pl-smi">x</span><span class="pl-k">=</span><span class="pl-c1">range</span>(<span class="pl-c1">10</span>), <span class="pl-smi">f</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>)</pre></div>
 
-<p>EasyExPlot automatically recognizes that parameter <em>x</em> is the one to iterate over and produces the following plot:</p>
+<p>ExPlot automatically recognizes that parameter <em>x</em> is the one to iterate over and produces the following plot:</p>
 
-<p><img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163422_00.png" width="640px"></p>
+<p><img src="https://raw.githubusercontent.com/bjoernwe/explot/master/README/20150122_163422_00.png" width="640px"></p>
 
 <p>Note how all arguments are automatically included in the plot to make the comparison of different plots easier.</p>
 
-<p>Suspecting that the function is noisy, we let EasyExPlot evaluate the function multiple times with the argument <em>repetitions</em>:</p>
+<p>Suspecting that the function is noisy, we let ExPlot evaluate the function multiple times with the argument <em>repetitions</em>:</p>
 
-<div class="highlight highlight-source-python"><pre>eep.plot(my_experiment, <span class="pl-smi">x</span><span class="pl-k">=</span><span class="pl-c1">range</span>(<span class="pl-c1">10</span>), <span class="pl-smi">f</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>, <span class="pl-smi">repetitions</span><span class="pl-k">=</span><span class="pl-c1">100</span>)</pre></div>
+<div class="highlight highlight-source-python"><pre>ep.plot(my_experiment, <span class="pl-smi">x</span><span class="pl-k">=</span><span class="pl-c1">range</span>(<span class="pl-c1">10</span>), <span class="pl-smi">f</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>, <span class="pl-smi">repetitions</span><span class="pl-k">=</span><span class="pl-c1">100</span>)</pre></div>
 
-<p><img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163542_00.png" width="640px"></p>
+<p><img src="https://raw.githubusercontent.com/bjoernwe/explot/master/README/20150122_163542_00.png" width="640px"></p>
 
-<p>Nice, we have mean and standard deviation now! But how do the other parameters (<em>f</em> and <em>shift</em>) influence the result of the experiment? Again, we replace the arguments in question with lists of possible values and EasyExPlot takes care of running the experiment for different combinations of arguments.</p>
+<p>Nice, we have mean and standard deviation now! But how do the other parameters (<em>f</em> and <em>shift</em>) influence the result of the experiment? Again, we replace the arguments in question with lists of possible values and ExPlot takes care of running the experiment for different combinations of arguments.</p>
 
-<div class="highlight highlight-source-python"><pre>eep.plot(my_experiment, <span class="pl-smi">x</span><span class="pl-k">=</span><span class="pl-c1">range</span>(<span class="pl-c1">10</span>), <span class="pl-smi">f</span><span class="pl-k">=</span>[<span class="pl-s"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>cos<span class="pl-pds">'</span></span>], 
-         <span class="pl-smi">shift</span><span class="pl-k">=</span>[<span class="pl-c1">False</span>, <span class="pl-c1">True</span>], <span class="pl-smi">repetitions</span><span class="pl-k">=</span><span class="pl-c1">100</span>)</pre></div>
+<div class="highlight highlight-source-python"><pre>ep.plot(my_experiment, <span class="pl-smi">x</span><span class="pl-k">=</span><span class="pl-c1">range</span>(<span class="pl-c1">10</span>), <span class="pl-smi">f</span><span class="pl-k">=</span>[<span class="pl-s"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>cos<span class="pl-pds">'</span></span>], 
+        <span class="pl-smi">shift</span><span class="pl-k">=</span>[<span class="pl-c1">False</span>, <span class="pl-c1">True</span>], <span class="pl-smi">repetitions</span><span class="pl-k">=</span><span class="pl-c1">100</span>)</pre></div>
 
-<p><img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163547_00.png" width="640px"></p>
+<p><img src="https://raw.githubusercontent.com/bjoernwe/explot/master/README/20150122_163547_00.png" width="640px"></p>
 
-<p>That was easy. But what if the experiment doesn't have a numeric parameter like <em>x</em>? Then the result is plotted as bars:</p>
+<p>That was easy. But what if the result doesn't have varying numeric parameters like <em>x</em>? Then the result is plotted as bars:</p>
 
-<div class="highlight highlight-source-python"><pre>eep.plot(my_experiment, <span class="pl-smi">f</span><span class="pl-k">=</span>[<span class="pl-s"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>cos<span class="pl-pds">'</span></span>], <span class="pl-smi">shift</span><span class="pl-k">=</span>[<span class="pl-c1">False</span>, <span class="pl-c1">True</span>], 
-         <span class="pl-smi">repetitions</span><span class="pl-k">=</span><span class="pl-c1">100</span>)</pre></div>
+<div class="highlight highlight-source-python"><pre>ep.plot(my_experiment, <span class="pl-smi">f</span><span class="pl-k">=</span>[<span class="pl-s"><span class="pl-pds">'</span>sin<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>cos<span class="pl-pds">'</span></span>], <span class="pl-smi">shift</span><span class="pl-k">=</span>[<span class="pl-c1">False</span>, <span class="pl-c1">True</span>], 
+        <span class="pl-smi">repetitions</span><span class="pl-k">=</span><span class="pl-c1">100</span>)</pre></div>
 
-<p><img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163600_00.png" width="640px"></p>
+<p><img src="https://raw.githubusercontent.com/bjoernwe/explot/master/README/20150122_163600_00.png" width="640px"></p>
+
+<p>Enjoy!</p>
 
       <footer class="site-footer">
         <span class="site-footer-owner"><a href="https://github.com/bjoernwe/explot">Easyexplot</a> is maintained by <a href="https://github.com/bjoernwe">bjoernwe</a>.</span>
