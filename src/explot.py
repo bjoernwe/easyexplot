@@ -15,8 +15,6 @@ import traceback
 
 __version__ = '0.5.0'
 
-RESULT_PATH = 'explot_results'
-
 Result = collections.namedtuple('Result', ['values', 
                                            'time_start', 
                                            'time_stop', 
@@ -27,8 +25,7 @@ Result = collections.namedtuple('Result', ['values',
                                            'script', 
                                            'function_name',
                                            'repetitions',
-                                           'cachedir', 
-                                           'result_prefix'])
+                                           'cachedir'])
 """
 A `namedtuple` to store results of `evaluate`.
 
@@ -60,9 +57,6 @@ repetitions : int
     Number of repetitions used for evaluation.
 cachedir : str or None
     Directory that was used for caching.
-result_prefix : str
-    A unique prefix (consisting of date and time), used for instance for saving 
-    the result in a file.
 """
 
 
@@ -174,13 +168,6 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     result_times = np.reshape(result_times, values_shape)
     result_seeds = np.reshape(result_seeds, values_shape)
         
-    # calculate a prefix for result files
-    timestamp = time.strftime('%Y%m%d_%H%M%S', time_start)
-    number_of_results = 0
-    if os.path.exists(RESULT_PATH):
-        number_of_results = len(set([os.path.splitext(f)[0] for f in os.listdir(RESULT_PATH) if f.startswith(timestamp)]))
-    result_prefix = '%s_%02d' % (timestamp, number_of_results)
-
     # prepare result
     result = Result(values=result_values,
                     time_start=time_start,
@@ -192,8 +179,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                     script=([s[1] for s in inspect.stack() if os.path.basename(s[1]) != os.path.basename(__file__)] + [None])[0],
                     function_name=experiment_function.__name__,
                     repetitions=repetitions,
-                    cachedir=cachedir,
-                    result_prefix=result_prefix)
+                    cachedir=cachedir)
     return result
 
 
@@ -293,7 +279,7 @@ def _f_wrapper_timed(wrapped_func, wrapped_hash, **kwargs):
 
 
 
-def plot(experiment_function, repetitions=1, processes=None, argument_order=None, cachedir=None, plot_elapsed_time=False, show_plot=True, save_plot=False, **kwargs):
+def plot(experiment_function, repetitions=1, processes=None, argument_order=None, cachedir=None, plot_elapsed_time=False, show_plot=True, save_plot_path=None, **kwargs):
     """
     Plots the real-valued function f using the given keyword arguments. At least
     one of the arguments must be an iterable (for instance a list of integers), 
@@ -326,10 +312,10 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
     plot_elapsed_time : bool, optional
         Indicated whether the elapsed time is plotted instead of the actual
         result.
-    save_result : bool, optional
-        If True, the pickled result is stored in `RESULT_PATH` (default: False).
     show_plot : bool, optional
         Indicates whether pyplot.show() is called or not (default: True).
+    save_plot_path : string, optional
+        Optional path where resulting plot is saved as a PNG file.
     kwargs : dict, optional
         Keyword arguments passed to function `experiment_function`. If a `seed`
         argument is given and the experiment is repeated more than once, the
@@ -353,12 +339,12 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
     if result is None:
         return
 
-    plot_result(result, plot_elapsed_time=plot_elapsed_time, save_plot=save_plot, show_plot=show_plot)
+    plot_result(result, plot_elapsed_time=plot_elapsed_time, show_plot=show_plot, save_plot_path=save_plot_path)
     return result
 
 
 
-def plot_result(result, plot_elapsed_time=False, show_plot=True, save_plot=False):
+def plot_result(result, plot_elapsed_time=False, show_plot=True, save_plot_path=None):
     """
     Plots the result of an experiment.
     
@@ -371,9 +357,8 @@ def plot_result(result, plot_elapsed_time=False, show_plot=True, save_plot=False
         result.
     show_plot : bool, optional
         Indicates whether pyplot.show() is called or not (default: True).
-    save_plot : bool, optional
-        Indicates whether the plot is saved as a PNG file in 
-        './experimentr_results' (default: False).
+    save_plot_path : string, optional
+        Optional path where resulting plot is saved as a PNG file.
     
     Returns
     -------
@@ -467,10 +452,13 @@ def plot_result(result, plot_elapsed_time=False, show_plot=True, save_plot=False
     plt.subplots_adjust(top=0.8)
 
     # save plot in file
-    if save_plot:
-        if not os.path.exists(RESULT_PATH):
-            os.makedirs(RESULT_PATH)
-        plt.savefig('%s/%s.png' % (RESULT_PATH, result.result_prefix))
+    if save_plot_path:
+        if not os.path.exists(save_plot_path):
+            os.makedirs(save_plot_path)
+        timestamp = time.strftime('%Y%m%d_%H%M%S', result.time_start)
+        number_of_results = len(set([os.path.splitext(f)[0] for f in os.listdir(save_plot_path) if f.startswith(timestamp)]))
+        result_prefix = '%s_%02d' % (timestamp, number_of_results)
+        plt.savefig('%s/%s.png' % (save_plot_path, result_prefix))
 
     # show plot
     if show_plot:
