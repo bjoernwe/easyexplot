@@ -13,7 +13,7 @@ import time
 import traceback
 
 
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 
 RESULT_PATH = 'explot_results'
 
@@ -113,23 +113,13 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
         fkwargs.update(dict(zip(fargspecs.args[-len(fargspecs.defaults):], fargspecs.defaults)))
     fkwargs.update(kwargs)
     
-    # warn if random experiment is cached without a seed
-    if repetitions > 1 and cachedir is not None and 'repetition_index' not in fkwargs:
-        print "Warning: You are using a cache and more than one repetition, which implies\n" + \
-                "a stochastic problem. To make this combination work properly, your experiment" + \
-                "should have an additional parameter repetition_index which will be set by" + \
-                "ExPlot and should be included in the initialization of your random number" + \
-                "generator."
+    # warn if random experiment is cached without a (proper) seed
+    if cachedir is not None and fkwargs.get('seed', None) is None:
+        print "Warning: You are caching results for a problem that seems to be stochastic.\n" + \
+            "In that case your function should take a seed and use it to initialize your\n" + \
+            "random number generator. ExPlot will replace the the seed by a unique value\n" + \
+            "in every repetition."
                 
-    # warn if repetition_index already had an value  
-    if fkwargs.get('repetition_index', None) is not None:
-        print "Warning: The argument repetition_index will be overwritten."
-
-    # remove repetition_index from regular parameters    
-    set_repetition_index = 'repetition_index' in fkwargs
-    if set_repetition_index:
-        fkwargs.pop('repetition_index')
-    
     # OrderedDict of argument names and values
     iter_args = collections.OrderedDict()
     # if parameters are ordered, then they are processed first
@@ -149,7 +139,6 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     f_partial = functools.partial(_f_wrapper, 
                                   iter_arg_names=iter_args.keys(), 
                                   experiment_function=experiment_function,
-                                  set_repetition_index=set_repetition_index,
                                   cachedir=cachedir,
                                   **fkwargs)
     
@@ -202,7 +191,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
 
 
 
-def _f_wrapper(args, iter_arg_names, experiment_function, set_repetition_index, cachedir=None, **kwargs):
+def _f_wrapper(args, iter_arg_names, experiment_function, cachedir=None, **kwargs):
     """
     [Intended for internal use only] A simple wrapper for the experiment 
     function that allows having specific arguments ('iter_args') as the first 
@@ -221,9 +210,6 @@ def _f_wrapper(args, iter_arg_names, experiment_function, set_repetition_index, 
         Names of the arguments
     experiment_function : function
         The function to call as experiment_function(iter_arg_names[0]=args[0], iter_arg_names[1]=args[1], ..., **kwargs).
-    set_repetition_index : bool
-        Indicates whether the current repetition_index is given as an argument
-        to the experiment function.
     cachedir : str, optional
         If a cache directory is given, joblib.Memory is used to cache the
         results of experiments in that directory.
@@ -238,14 +224,16 @@ def _f_wrapper(args, iter_arg_names, experiment_function, set_repetition_index, 
     # reduce niceness of process
     os.nice(kwargs.pop('niceness', 20))
     
-    # set repetition index
-    if set_repetition_index:
-        kwargs['repetition_index'] = args[-1]
-    
     # set current value for iterable arguments
     if iter_arg_names is not None:
         for i, iter_arg_name in enumerate(iter_arg_names):
             kwargs[iter_arg_name] = args[i]
+       
+    # replace seed for repeating experiments
+    repetition_index = args[-1]     
+    if kwargs.get('seed', None) is not None:
+        unique_seed = hash(frozenset(kwargs.items() + [('repetition_index', repetition_index)])) % np.iinfo(np.uint32).max
+        kwargs['seed'] = unique_seed
 
     # cache function with joblib. the hash is calculated manually, because due
     # to the wrapper, joblib would not detect a modified experiment_function
