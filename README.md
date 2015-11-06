@@ -1,6 +1,6 @@
 # EasyExPlot #
 
-When running scientific experiments, you can often find yourself in the situation of calling the same functions again and again - only with different arguments. The code for these repeated experiments and their visualization easily becomes cumbersome and highly redundant. That's where EasyExPlot can help!
+When running scientific experiments, I often find myself in the situation of calling the same functions again and again - only with different arguments. The code for these repeated experiments and their visualization easily becomes cumbersome and highly redundant. That's where EasyExPlot is supposed to help.
 
 EasyExPlot is a small Python tool that helps you plot your experiments with different combinations of input arguments. The idea is to automatically recognize which arguments are varied between experiments, run all the experiments parallelized over all the cores of your machine, and visualize the results with properly labeled axes and everything.
 
@@ -48,7 +48,7 @@ eep.plot(my_experiment, x=range(10), f=['sin', 'cos'],
 
 <img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163547_00.png" width="640px">
 
-That was easy. But what if the experiment doesn't have a numeric parameter like *x*? Then the result is plotted as bars:
+That was easy. But what if the result doesn't have varying numeric parameters like *x*? Then the result is plotted as bars:
 
 ```python
 eep.plot(my_experiment, f=['sin', 'cos'], shift=[False, True], 
@@ -57,3 +57,4 @@ eep.plot(my_experiment, f=['sin', 'cos'], shift=[False, True],
 
 <img src="https://raw.githubusercontent.com/bjoernwe/easyexplot/master/README/20150122_163600_00.png" width="640px">
 
+Enjoy!
