@@ -23,6 +23,7 @@ Result = collections.namedtuple('Result', ['values',
                                            'iter_args', 
                                            'kwargs', 
                                            'elapsed_times',
+                                           'seeds',
                                            'script', 
                                            'function_name',
                                            'repetitions',
@@ -48,6 +49,9 @@ kwargs : dict
 elapsed_times : array
     Array containing execution times (in milliseconds) for each function 
     evaluation. The shape is the same as for `values`.
+seeds : array
+    Array containing the seeds used for each experiment. The shape is the same 
+    as for `values`.
 script : str
     Name of the calling script.
 function_name : str
@@ -161,12 +165,14 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     result_array = np.array(result_list)
     result_values = np.array(result_array[:,0], dtype='float')
     result_times = np.array(result_array[:,1], dtype='float')
+    result_seeds = np.array(result_array[:,2], dtype='float')
     
     # re-arrange ndim array
     iter_args_values_lengths = [len(values) for values in iter_args.values()]
     values_shape = tuple(iter_args_values_lengths + [repetitions])
     result_values = np.reshape(result_values, values_shape)
     result_times = np.reshape(result_times, values_shape)
+    result_seeds = np.reshape(result_seeds, values_shape)
         
     # calculate a prefix for result files
     timestamp = time.strftime('%Y%m%d_%H%M%S', time_start)
@@ -182,6 +188,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                     iter_args=iter_args,
                     kwargs=fkwargs,
                     elapsed_times=result_times,
+                    seeds=result_seeds,
                     script=([s[1] for s in inspect.stack() if os.path.basename(s[1]) != os.path.basename(__file__)] + [None])[0],
                     function_name=experiment_function.__name__,
                     repetitions=repetitions,
@@ -234,6 +241,7 @@ def _f_wrapper(args, iter_arg_names, experiment_function, cachedir=None, **kwarg
     if kwargs.get('seed', None) is not None:
         unique_seed = hash(frozenset(kwargs.items() + [('repetition_index', repetition_index)])) % np.iinfo(np.uint32).max
         kwargs['seed'] = unique_seed
+    used_seed = kwargs.get('seed', None)
 
     # cache function with joblib. the hash is calculated manually, because due
     # to the wrapper, joblib would not detect a modified experiment_function
@@ -252,7 +260,7 @@ def _f_wrapper(args, iter_arg_names, experiment_function, cachedir=None, **kwarg
     except Exception as e:
         sys.stderr.write(traceback.format_exc())
         raise e
-    return (result, elapsed_time)
+    return (result, elapsed_time, used_seed)
 
 
 
