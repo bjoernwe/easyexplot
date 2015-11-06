@@ -15,7 +15,7 @@ import traceback
 
 __version__ = '0.4.0'
 
-RESULT_PATH = 'easyexplot_results'
+RESULT_PATH = 'explot_results'
 
 Result = collections.namedtuple('Result', ['values', 
                                            'time_start', 
@@ -80,7 +80,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
         though, that noisy experiments need proper initialization of the random
         number generator (RNG) to produce meaningful results. Your experiment 
         should take a seed value as well as an additional argument 
-        `repetition_index` which will be set by EasyExPlot. The RNG then must 
+        `repetition_index` which will be set by ExPlot. The RNG then must 
         be initialized with a value that depends on all your input arguments, 
         including `seed` and `repetition_index`.
     processes : int or None, optional
@@ -118,7 +118,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
         print "Warning: You are using a cache and more than one repetition, which implies\n" + \
                 "a stochastic problem. To make this combination work properly, your experiment" + \
                 "should have an additional parameter repetition_index which will be set by" + \
-                "EasyExPlot and should be included in the initialization of your random number" + \
+                "ExPlot and should be included in the initialization of your random number" + \
                 "generator."
                 
     # warn if repetition_index already had an value  
@@ -314,7 +314,7 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
         though, that noisy experiments need proper initialization of the random
         number generator (RNG) to produce meaningful results. Your experiment 
         should take a seed value as well as an additional argument 
-        `repetition_index` which will be set by EasyExPlot. The RNG then must 
+        `repetition_index` which will be set by ExPlot. The RNG then must 
         be initialized with a value that depends on all your input arguments, 
         including `seed` and `repetition_index`.
     processes : int or None, optional
