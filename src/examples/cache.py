@@ -34,7 +34,7 @@ def main():
     ep.plot(my_experiment, 
             x=range(10), 
             seed=seed, 
-            repetitions=repetitions, 
+            repetitions=repetitions,
             cachedir=cachedir)
     return
 
