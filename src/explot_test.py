@@ -48,6 +48,22 @@ class TestExPlot(unittest.TestCase):
         r1 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=0)
         self.assertNotEqual(list(r1.values[:,0].flatten()), list(r1.values[:,1].flatten()))
 
+    def testSeedValues(self):
+        # nan when no seed
+        r1 = ep.evaluate(experiment, x=range(100), repetitions=2)
+        self.assertTrue(np.any(np.isnan(r1.seeds)))
+        # same when same seed
+        r1 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=0)
+        r2 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=0)
+        self.assertEqual(list(r1.seeds.flatten()), list(r2.seeds.flatten()))
+        # different when different seed
+        r1 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=0)
+        r2 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=1)
+        self.assertNotEqual(list(r1.seeds.flatten()), list(r2.seeds.flatten()))
+        # different when repeated
+        r1 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=0)
+        self.assertNotEqual(list(r1.seeds[:,0].flatten()), list(r1.seeds[:,1].flatten()))
+
 
 if __name__ == "__main__":
     unittest.main()
