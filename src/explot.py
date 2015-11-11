@@ -13,7 +13,7 @@ import time
 import traceback
 
 
-__version__ = '0.5.0'
+__version__ = '0.5.1'
 
 Result = collections.namedtuple('Result', ['values', 
                                            'time_start', 
@@ -167,6 +167,12 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     result_values = np.reshape(result_values, values_shape)
     result_times = np.reshape(result_times, values_shape)
     result_seeds = np.reshape(result_seeds, values_shape)
+    
+    # name of this file
+    file_name = os.path.basename(__file__)
+    file_name = os.path.splitext(file_name)[0]
+    file_name_py = file_name + '.py'
+    file_name_pyc = file_name + '.pyc'
         
     # prepare result
     result = Result(values=result_values,
@@ -176,7 +182,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                     kwargs=fkwargs,
                     elapsed_times=result_times,
                     seeds=result_seeds,
-                    script=([s[1] for s in inspect.stack() if os.path.basename(s[1]) != os.path.basename(__file__)] + [None])[0],
+                    script=([s[1] for s in inspect.stack() if not (s[1].endswith(file_name_py) or s[1].endswith(file_name_pyc))] + [None])[0],
                     function_name=experiment_function.__name__,
                     repetitions=repetitions,
                     cachedir=cachedir)
@@ -493,12 +499,11 @@ def _is_iterable(x):
 
 
 
-def my_experiment(x, y=0, f='sin', shift=False, seed=None, repetition_index=None):
+def my_experiment(x, y=0, f='sin', shift=False, seed=None):
     """
     A simple example for an experiment function.
     """
-    unique_seed = abs(hash((x, y, f, shift, seed, repetition_index)))
-    np.random.seed(unique_seed)
+    np.random.seed(seed)
 
     time.sleep(1)
     
@@ -522,7 +527,6 @@ def main():
     seed = 0
     repetitions = 10
     show_plot = True
-    save_plot = False
     processes = None
     cachedir = '/tmp'
     plot_elapsed_time = False
@@ -531,23 +535,23 @@ def main():
     print my_experiment(x=0, f='sin', seed=seed, shift=False)
 
     # plot with varying x
-    plot(my_experiment, x=range(10), f='sin', seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
+    plot(my_experiment, x=range(10), f='sin', seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
     
     # plot with varying x and f
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=False, repetitions=repetitions, show_plot=show_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
     
     # plot with varying x as well as f and shift
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], repetitions=repetitions, show_plot=show_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
 
     # plot with varying x as well as f and shift, but force a certain order
-    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], argument_order=['x', 'f', 'shift'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
+    plot(my_experiment, x=range(10), f=['sin', 'cos'], seed=seed, shift=[False, True], argument_order=['x', 'f', 'shift'], repetitions=repetitions, show_plot=show_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
     
     # bar plot for x=0 with varying f and shift (as well as forced order of parameters)
-    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
-    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, argument_order=['f'], repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
+    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, repetitions=repetitions, show_plot=show_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
+    plot(my_experiment, x=0, f=['sin', 'cos'], shift=[False, True], seed=seed, argument_order=['f'], repetitions=repetitions, show_plot=show_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
     
     # 2d plot
-    plot(my_experiment, x=range(10), y=range(10), seed=seed, repetitions=repetitions, show_plot=show_plot, save_plot=save_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
+    plot(my_experiment, x=range(10), y=range(10), seed=seed, repetitions=repetitions, show_plot=show_plot, processes=processes, cachedir=cachedir, plot_elapsed_time=plot_elapsed_time)
 
 
 

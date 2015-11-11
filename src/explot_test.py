@@ -63,6 +63,10 @@ class TestExPlot(unittest.TestCase):
         # different when repeated
         r1 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=0)
         self.assertNotEqual(list(r1.seeds[:,0].flatten()), list(r1.seeds[:,1].flatten()))
+        
+    def testScriptName(self):
+        r = ep.evaluate(experiment, x=0)
+        self.assertTrue(r.script.endswith('explot_test.py'))
 
 
 if __name__ == "__main__":
