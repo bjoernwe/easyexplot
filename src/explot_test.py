@@ -61,8 +61,10 @@ class TestExPlot(unittest.TestCase):
         r2 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=1)
         self.assertNotEqual(list(r1.seeds.flatten()), list(r2.seeds.flatten()))
         # different when repeated
-        r1 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=0)
-        self.assertNotEqual(list(r1.seeds[:,0].flatten()), list(r1.seeds[:,1].flatten()))
+        r1 = ep.evaluate(experiment, x=range(100), repetitions=3, seed=0)
+        self.assertNotEqual(list(r1.seeds[:,1].flatten()), list(r1.seeds[:,2].flatten()))
+        # seed not changed in first repetition
+        self.assertTrue(np.allclose(r1.seeds[:,0], 0))
         
     def testScriptName(self):
         r = ep.evaluate(experiment, x=0)
