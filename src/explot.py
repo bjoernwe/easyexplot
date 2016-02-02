@@ -230,7 +230,7 @@ def _f_wrapper(args, iter_arg_names, experiment_function, cachedir=None, **kwarg
        
     # replace seed for repeating experiments
     repetition_index = args[-1]     
-    if kwargs.get('seed', None) is not None:
+    if kwargs.get('seed', None) is not None and repetition_index > 0:
         unique_seed = hash(frozenset(kwargs.items() + [('repetition_index', repetition_index)])) % np.iinfo(np.uint32).max
         kwargs['seed'] = unique_seed
     used_seed = kwargs.get('seed', None)
