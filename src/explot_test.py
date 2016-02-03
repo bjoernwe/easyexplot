@@ -127,6 +127,17 @@ class TestExPlot(unittest.TestCase):
     def testScriptName(self):
         r = ep.evaluate(experiment, x=0)
         self.assertTrue(r.script.endswith('explot_test.py'))
+        
+    def testArgumentSeed(self):
+        """
+        Tests whether calc_argument_seed takes into account all the right 
+        values.
+        """
+        def f(a, b=0, c=0, **kwargs):
+            return ep.calc_argument_seed()
+        reference_seed = hash(frozenset([('a', 42), ('b', 0), ('c', 1), ('x', False)])) % np.iinfo(np.uint32).max
+        self.assertEqual(f(a=42, c=1, x=False), reference_seed)
+        
 
 
 if __name__ == "__main__":
