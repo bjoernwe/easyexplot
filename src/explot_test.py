@@ -17,7 +17,11 @@ def experiment(x, y=0, f='sin', shift=False, seed=None):
         result_value += .3
     result_value += y + np.sin(y) + .5 * np.random.randn()
     return result_value
-    
+
+
+def experiment_repidx(x, seed, repetition_index):
+    np.random.seed(seed)
+    return x + np.random.randn() + 1e6*repetition_index
 
 
 class TestExPlot(unittest.TestCase):
@@ -32,6 +36,10 @@ class TestExPlot(unittest.TestCase):
         self.assertEqual(result.kwargs['seed'], None)
         
     def testSeed(self):
+        """
+        Tests whether results are the same/different as expected depending on
+        seed.
+        """
         # different when no seed
         r1 = ep.evaluate(experiment, x=range(100), repetitions=2)
         r2 = ep.evaluate(experiment, x=range(100), repetitions=2)
@@ -48,23 +56,73 @@ class TestExPlot(unittest.TestCase):
         r1 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=0)
         self.assertNotEqual(list(r1.values[:,0].flatten()), list(r1.values[:,1].flatten()))
 
-    def testSeedValues(self):
+    def testSeedManageExternal(self):
+        """
+        Tests whether results are the same/different as expected depending on
+        externally managed seed.
+        """
+        # different when no seed
+        r1 = ep.evaluate(experiment_repidx, x=range(100), repetitions=2, manage_seed='external')
+        r2 = ep.evaluate(experiment_repidx, x=range(100), repetitions=2, manage_seed='external')
+        self.assertNotEqual(list(r1.values.flatten()), list(r2.values.flatten()))
+        # same when same seed
+        r1 = ep.evaluate(experiment_repidx, x=range(100), repetitions=2, seed=0, manage_seed='external')
+        r2 = ep.evaluate(experiment_repidx, x=range(100), repetitions=2, seed=0, manage_seed='external')
+        self.assertEqual(list(r1.values.flatten()), list(r2.values.flatten()))
+        # different when different seed
+        r1 = ep.evaluate(experiment_repidx, x=range(100), repetitions=2, seed=0, manage_seed='external')
+        r2 = ep.evaluate(experiment_repidx, x=range(100), repetitions=2, seed=1, manage_seed='external')
+        self.assertNotEqual(list(r1.values.flatten()), list(r2.values.flatten()))
+        # different when repeated
+        r1 = ep.evaluate(experiment_repidx, x=range(100), repetitions=2, seed=0, manage_seed='external')
+        self.assertNotEqual(list(r1.values[:,0].flatten()), list(r1.values[:,1].flatten()))
+
+    def testSeedValuesManageNo(self):
+        """
+        Tests whether the seed values make sense when manage_seed set to 'no'.
+        """
         # nan when no seed
-        r1 = ep.evaluate(experiment, x=range(100), repetitions=2)
+        r1 = ep.evaluate(experiment, x=range(100), repetitions=2, manage_seed='no')
+        self.assertTrue(np.any(np.isnan(r1.seeds)))
+        # same as given seed, also during repetitions
+        r1 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=0, manage_seed='no')
+        self.assertTrue(np.allclose(r1.seeds.flatten(), 0))
+        r1 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=1, manage_seed='no')
+        self.assertTrue(np.allclose(r1.seeds.flatten(), 1))
+        
+    def testSeedValuesManageAuto(self):
+        """
+        Tests whether the auto-generated seed values make sense.
+        """
+        # nan when no seed
+        r1 = ep.evaluate(experiment, x=range(100), repetitions=2, manage_seed='auto')
         self.assertTrue(np.any(np.isnan(r1.seeds)))
         # same when same seed
-        r1 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=0)
-        r2 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=0)
+        r1 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=0, manage_seed='auto')
+        r2 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=0, manage_seed='auto')
         self.assertEqual(list(r1.seeds.flatten()), list(r2.seeds.flatten()))
         # different when different seed
-        r1 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=0)
-        r2 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=1)
+        r1 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=0, manage_seed='auto')
+        r2 = ep.evaluate(experiment, x=range(100), repetitions=2, seed=1, manage_seed='auto')
         self.assertNotEqual(list(r1.seeds.flatten()), list(r2.seeds.flatten()))
         # different when repeated
-        r1 = ep.evaluate(experiment, x=range(100), repetitions=3, seed=0)
+        r1 = ep.evaluate(experiment, x=range(100), repetitions=3, seed=0, manage_seed='auto')
         self.assertNotEqual(list(r1.seeds[:,1].flatten()), list(r1.seeds[:,2].flatten()))
         # seed not changed in first repetition
         self.assertTrue(np.allclose(r1.seeds[:,0], 0))
+        
+    def testSeedValuesManageExternal(self):
+        """
+        Tests whether the seed values make sense when manage_seed set to 'external'.
+        """
+        # nan when no seed
+        r1 = ep.evaluate(experiment_repidx, x=range(100), repetitions=2, manage_seed='external')
+        self.assertTrue(np.any(np.isnan(r1.seeds)))
+        # same as given seed, also during repetitions
+        r1 = ep.evaluate(experiment_repidx, x=range(100), repetitions=2, seed=0, manage_seed='external')
+        self.assertTrue(np.allclose(r1.seeds.flatten(), 0))
+        r1 = ep.evaluate(experiment_repidx, x=range(100), repetitions=2, seed=1, manage_seed='external')
+        self.assertTrue(np.allclose(r1.seeds.flatten(), 1))
         
     def testScriptName(self):
         r = ep.evaluate(experiment, x=0)
