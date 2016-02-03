@@ -13,7 +13,7 @@ import time
 import traceback
 
 
-__version__ = '0.5.1'
+__version__ = '0.6'
 
 Result = collections.namedtuple('Result', ['values', 
                                            'time_start', 
@@ -61,7 +61,7 @@ cachedir : str or None
 
 
 
-def evaluate(experiment_function, repetitions=1, processes=None, argument_order=None, cachedir=None, **kwargs):
+def evaluate(experiment_function, repetitions=1, processes=None, argument_order=None, cachedir=None, manage_seed='auto', **kwargs):
     """
     Evaluates the real-valued function f using the given keyword arguments. 
     Usually, one or more of the arguments are iterables (for instance a list of 
@@ -90,6 +90,17 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     cachedir : str, optional
         If a cache directory is given, joblib.Memory is used to cache the
         results of experiments in that directory.
+    manage_seed : {'auto', 'no', 'external'}, optional
+        When set to 'auto' (default), ExPlot will replace the seed value through 
+        a unique one, depending on the given one, the `experiment_function`'s 
+        arguments and the current repetition. Otherwise all repetitions would 
+        receive the same seed value which would make repetitions useless.
+        When set to 'no', the given seed value will not be modified. This 
+        assumes that `experiment_function` is either deterministic or no caching 
+        is used.
+        When set to 'external', seed is not modified but `experiment_function`
+        is provided with an additional argument `repition_index` to enable more
+        fine-grained caching mechanisms inside `experiment_function`.
     kwargs : dict, optional
         Keyword arguments passed to function `experiment_function`. If a `seed`
         argument is given and the experiment is repeated more than once, the
@@ -138,6 +149,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                                   iter_arg_names=iter_args.keys(), 
                                   experiment_function=experiment_function,
                                   cachedir=cachedir,
+                                  manage_seed=manage_seed,
                                   **fkwargs)
     
     # number of parallel processes
@@ -190,7 +202,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
 
 
 
-def _f_wrapper(args, iter_arg_names, experiment_function, cachedir=None, **kwargs):
+def _f_wrapper(args, iter_arg_names, experiment_function, manage_seed, cachedir=None, **kwargs):
     """
     [Intended for internal use only] A simple wrapper for the experiment 
     function that allows having specific arguments ('iter_args') as the first 
@@ -209,6 +221,8 @@ def _f_wrapper(args, iter_arg_names, experiment_function, cachedir=None, **kwarg
         Names of the arguments
     experiment_function : function
         The function to call as experiment_function(iter_arg_names[0]=args[0], iter_arg_names[1]=args[1], ..., **kwargs).
+    manage_seed : {'auto', 'no', 'external'}
+        See documentation on `evaluate`. 
     cachedir : str, optional
         If a cache directory is given, joblib.Memory is used to cache the
         results of experiments in that directory.
@@ -229,11 +243,21 @@ def _f_wrapper(args, iter_arg_names, experiment_function, cachedir=None, **kwarg
             kwargs[iter_arg_name] = args[i]
        
     # replace seed for repeating experiments
-    repetition_index = args[-1]     
-    if kwargs.get('seed', None) is not None:
-        unique_seed = hash(frozenset(kwargs.items() + [('repetition_index', repetition_index)])) % np.iinfo(np.uint32).max
-        kwargs['seed'] = unique_seed
     used_seed = kwargs.get('seed', None)
+    if manage_seed == 'no':
+        pass
+    elif manage_seed == 'auto':
+        repetition_index = args[-1]     
+        if kwargs.get('seed', None) is not None and repetition_index > 0:
+            unique_seed = hash(frozenset(kwargs.items() + [('repetition_index', repetition_index)])) % np.iinfo(np.uint32).max
+            kwargs['seed'] = unique_seed
+        used_seed = kwargs.get('seed', None)
+    elif manage_seed == 'external':
+        repetition_index = args[-1]     
+        kwargs['seed'] = used_seed
+        kwargs['repetition_index'] = repetition_index
+    else:
+        assert False # should never happen
 
     # cache function with joblib. the hash is calculated manually, because due
     # to the wrapper, joblib would not detect a modified experiment_function
@@ -285,7 +309,7 @@ def _f_wrapper_timed(wrapped_func, wrapped_hash, **kwargs):
 
 
 
-def plot(experiment_function, repetitions=1, processes=None, argument_order=None, cachedir=None, plot_elapsed_time=False, show_plot=True, save_plot_path=None, **kwargs):
+def plot(experiment_function, repetitions=1, processes=None, argument_order=None, cachedir=None, manage_seed='auto', plot_elapsed_time=False, show_plot=True, save_plot_path=None, **kwargs):
     """
     Plots the real-valued function f using the given keyword arguments. At least
     one of the arguments must be an iterable (for instance a list of integers), 
@@ -315,6 +339,17 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
     cachedir : str, optional
         If a cache directory is given, joblib.Memory is used to cache the
         results of experiments in that directory.
+    manage_seed : {'auto', 'no', 'external'}, optional
+        When set to 'auto' (default), ExPlot will replace the seed value through 
+        a unique one, depending on the given one, the `experiment_function`'s 
+        arguments and the current repetition. Otherwise all repetitions would 
+        receive the same seed value which would make repetitions useless.
+        When set to 'no', the given seed value will not be modified. This 
+        assumes that `experiment_function` is either deterministic or no caching 
+        is used.
+        When set to 'external', seed is not modified but `experiment_function`
+        is provided with an additional argument `repition_index` to enable more
+        fine-grained caching mechanisms inside `experiment_function`.
     plot_elapsed_time : bool, optional
         Indicated whether the elapsed time is plotted instead of the actual
         result.
@@ -340,7 +375,8 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
                       repetitions=repetitions, 
                       processes=processes, 
                       argument_order=argument_order,
-                      cachedir=cachedir, 
+                      cachedir=cachedir,
+                      manage_seed=manage_seed, 
                       **kwargs)
     if result is None:
         return
