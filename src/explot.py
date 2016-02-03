@@ -531,7 +531,21 @@ def _all_numeric(iterable):
 def _is_iterable(x):
     if isinstance(x, str):
         return False
-    return isinstance(x, collections.Iterable) 
+    return isinstance(x, collections.Iterable)
+
+
+
+def calc_argument_seed():
+    """
+    Calculates a seed value that depends on all the argument values of the
+    calling function. Should be called before changing any local variables in 
+    that function because values are taken from that local context. 
+    """
+    curframe = inspect.currentframe()
+    calframe = inspect.getouterframes(curframe, 2)[1][0]
+    arginfo = inspect.getargvalues(calframe)
+    args = [(name, arginfo.locals[name]) for name in arginfo.args] + arginfo.locals['kwargs'].items()
+    return hash(frozenset(args)) % np.iinfo(np.uint32).max
 
 
 
