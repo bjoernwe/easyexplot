@@ -5,7 +5,7 @@ import explot as ep
 
 
 
-def experiment(x, y=0, f='sin', shift=False, seed=None):
+def experiment(x, y=0, f='sin', shift=False, dummy=None, seed=None):
     np.random.seed(seed)
     if f == 'sin':
         result_value = np.sin(x)
@@ -28,11 +28,12 @@ class TestExPlot(unittest.TestCase):
 
     def testDefaultValues(self):
         result = ep.evaluate(experiment, x=0)
-        self.assertEqual(len(result.kwargs), 5)
+        self.assertEqual(len(result.kwargs), 6)
         self.assertEqual(result.kwargs['x'], 0)
         self.assertEqual(result.kwargs['y'], 0)
         self.assertEqual(result.kwargs['f'], 'sin')
         self.assertEqual(result.kwargs['shift'], False)
+        self.assertEqual(result.kwargs['dummy'], None)
         self.assertEqual(result.kwargs['seed'], None)
         
     def testSeed(self):
@@ -134,9 +135,18 @@ class TestExPlot(unittest.TestCase):
         values.
         """
         def f(a, b=0, c=0, **kwargs):
-            return ep.calc_argument_seed()
-        reference_seed = hash(frozenset([('a', 42), ('b', 0), ('c', 1), ('x', False)])) % np.iinfo(np.uint32).max
-        self.assertEqual(f(a=42, c=1, x=False), reference_seed)
+            return ep.calc_argument_hash()
+        reference_seed = hash(frozenset({'a': 42, 'b': 0, 'c': 1, 'x': False})) % np.iinfo(np.uint32).max
+        self.assertEqual(f(a=42, c=1, x=False)[0], reference_seed)
+        
+    def testIgnoreArguments(self):
+        r1 = ep.evaluate(experiment, x=range(10), seed=0)
+        r2 = ep.evaluate(experiment, x=range(10), dummy=(0,1), argument_order=['x'], seed=0)
+        r3 = ep.evaluate(experiment, x=range(10), dummy=(0,1), argument_order=['x'], ignore_arguments=['dummy'], seed=0)
+        self.assertFalse(np.all(r1.values==r2.values))
+        self.assertNotEqual(r1.iter_args, r2.iter_args)
+        self.assertTrue(np.all(r1.values==r3.values))
+        self.assertEqual(r1.iter_args, r3.iter_args)
         
 
 
