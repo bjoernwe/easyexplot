@@ -103,7 +103,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
         assumes that `experiment_function` is either deterministic or no caching 
         is used.
         When set to 'external', seed is not modified but `experiment_function`
-        is provided with an additional argument `repition_index` to enable more
+        is provided with an additional argument `repetition_index` to enable more
         fine-grained caching mechanisms inside `experiment_function`.
     kwargs : dict, optional
         Keyword arguments passed to function `experiment_function`. If a `seed`
