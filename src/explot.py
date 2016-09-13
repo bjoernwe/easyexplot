@@ -13,7 +13,7 @@ import time
 import traceback
 
 
-__version__ = '0.6'
+__version__ = '0.6.1'
 
 Result = collections.namedtuple('Result', ['values', 
                                            'time_start', 
@@ -61,7 +61,8 @@ cachedir : str or None
 
 
 
-def evaluate(experiment_function, repetitions=1, processes=None, argument_order=None, cachedir=None, manage_seed='auto', **kwargs):
+def evaluate(experiment_function, repetitions=1, processes=None, argument_order=None, 
+             ignore_arguments=None, cachedir=None, manage_seed='auto', **kwargs):
     """
     Evaluates the real-valued function f using the given keyword arguments. 
     Usually, one or more of the arguments are iterables (for instance a list of 
@@ -87,6 +88,9 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
         Some of the iterable argument names may be given in a list to force a
         certain order. Without this, Python's kwargs have an undefined order 
         which may result in plots other than intended.
+    ignore_arguments : list of strings, optional
+        A list of arguments that may be iterable but are not mend to be iterated
+        over by ExPlot.
     cachedir : str, optional
         If a cache directory is given, joblib.Memory is used to cache the
         results of experiments in that directory.
@@ -99,7 +103,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
         assumes that `experiment_function` is either deterministic or no caching 
         is used.
         When set to 'external', seed is not modified but `experiment_function`
-        is provided with an additional argument `repition_index` to enable more
+        is provided with an additional argument `repetition_index` to enable more
         fine-grained caching mechanisms inside `experiment_function`.
     kwargs : dict, optional
         Keyword arguments passed to function `experiment_function`. If a `seed`
@@ -131,10 +135,12 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                 
     # OrderedDict of argument names and values
     iter_args = collections.OrderedDict()
+    if ignore_arguments is None:
+        ignore_arguments = []
     # if parameters are ordered, then they are processed first
     if argument_order is not None:
-        iter_args.update([(name, None) for name in argument_order if name in fkwargs and _is_iterable(fkwargs[name])])
-    new_iter_args_dict = {name: fkwargs.pop(name) for (name, values) in fkwargs.items() if _is_iterable(values)}
+        iter_args.update([(name, None) for name in argument_order if name in fkwargs and _is_iterable(fkwargs[name]) and name not in ignore_arguments])
+    new_iter_args_dict = {name: fkwargs.pop(name) for (name, values) in fkwargs.items() if _is_iterable(values) and name not in ignore_arguments}
     new_iter_args_dict = sorted(new_iter_args_dict.items(), key=lambda x: len(x[1]), reverse=True)
     iter_args.update(new_iter_args_dict)
     del(new_iter_args_dict)
@@ -309,7 +315,9 @@ def _f_wrapper_timed(wrapped_func, wrapped_hash, **kwargs):
 
 
 
-def plot(experiment_function, repetitions=1, processes=None, argument_order=None, cachedir=None, manage_seed='auto', plot_elapsed_time=False, show_plot=True, save_plot_path=None, **kwargs):
+def plot(experiment_function, repetitions=1, processes=None, argument_order=None, 
+         ignore_arguments=None, cachedir=None, manage_seed='auto', plot_elapsed_time=False, 
+         show_plot=True, save_plot_path=None, **kwargs):
     """
     Plots the real-valued function f using the given keyword arguments. At least
     one of the arguments must be an iterable (for instance a list of integers), 
@@ -336,6 +344,9 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
         certain order. Without this, Python's kwargs have an undefined order 
         which may result in plots other than intended. Also, the first argument
         determines if a line plot or a bar plot is used.
+    ignore_arguments : list of strings, optional
+        A list of arguments that may be iterable but are not mend to be iterated
+        over by ExPlot.
     cachedir : str, optional
         If a cache directory is given, joblib.Memory is used to cache the
         results of experiments in that directory.
@@ -375,6 +386,7 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
                       repetitions=repetitions, 
                       processes=processes, 
                       argument_order=argument_order,
+                      ignore_arguments=ignore_arguments,
                       cachedir=cachedir,
                       manage_seed=manage_seed, 
                       **kwargs)
@@ -535,17 +547,22 @@ def _is_iterable(x):
 
 
 
-def calc_argument_seed():
+def calc_argument_hash(**kwargs):
     """
-    Calculates a seed value that depends on all the argument values of the
-    calling function. Should be called before changing any local variables in 
-    that function because values are taken from that local context. 
+    Calculates a hash value depending on the given arguments. If no arguments
+    are given, all the arguments of the calling function are considered. In that
+    case, the function should be called before changing any local variables in 
+    the calling function because values are taken from the local context.
+    Returns the hash and a dictionary containing the arguments considered. 
     """
-    curframe = inspect.currentframe()
-    calframe = inspect.getouterframes(curframe, 2)[1][0]
-    arginfo = inspect.getargvalues(calframe)
-    args = [(name, arginfo.locals[name]) for name in arginfo.args] + arginfo.locals['kwargs'].items()
-    return hash(frozenset(args)) % np.iinfo(np.uint32).max
+    if len(kwargs) == 0:
+        curframe = inspect.currentframe()
+        calframe = inspect.getouterframes(curframe, 2)[1][0]
+        arginfo = inspect.getargvalues(calframe)
+        kwargs = {name: arginfo.locals[name] for name in arginfo.args}
+        kwargs.update(arginfo.locals.get('kwargs', {}))
+    arg_hash = hash(frozenset(kwargs)) % np.iinfo(np.uint32).max
+    return arg_hash, kwargs
 
 
 
