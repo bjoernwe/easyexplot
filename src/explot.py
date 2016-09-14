@@ -13,7 +13,7 @@ import time
 import traceback
 
 
-__version__ = '0.6.1'
+__version__ = '0.6.2'
 
 Result = collections.namedtuple('Result', ['values', 
                                            'time_start', 
@@ -531,6 +531,8 @@ def _is_numeric(x):
         float(x)
         return True
     except ValueError:
+        return False
+    except TypeError:
         return False
     
     
