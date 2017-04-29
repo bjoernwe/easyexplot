@@ -258,6 +258,13 @@ def _f_wrapper(args, iter_arg_names, experiment_function, manage_seed, cachedir=
             unique_seed = hash(frozenset(kwargs.items() + [('repetition_index', repetition_index)])) % np.iinfo(np.uint32).max
             kwargs['seed'] = unique_seed
         used_seed = kwargs.get('seed', None)
+    elif manage_seed == 'repetition_index':
+        input_seed = kwargs.get('seed', 0)
+        repetition_index = args[-1]
+        used_seed = repetition_index
+        if input_seed is not None:
+            used_seed += input_seed
+        kwargs['seed'] = used_seed
     elif manage_seed == 'external':
         repetition_index = args[-1]     
         kwargs['seed'] = used_seed
