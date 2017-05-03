@@ -210,7 +210,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
 
 
 
-def _f_wrapper(args, iter_arg_names, experiment_function, manage_seed, cachedir=None, verbose = False, **kwargs):
+def _f_wrapper(args, iter_arg_names, experiment_function, manage_seed, cachedir=None, verbose=False, **kwargs):
     """
     [Intended for internal use only] A simple wrapper for the experiment 
     function that allows having specific arguments ('iter_args') as the first 
