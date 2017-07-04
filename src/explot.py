@@ -13,7 +13,7 @@ import time
 import traceback
 
 
-__version__ = '0.6.2'
+__version__ = '0.7'
 
 Result = collections.namedtuple('Result', ['values', 
                                            'time_start', 
@@ -62,7 +62,8 @@ cachedir : str or None
 
 
 def evaluate(experiment_function, repetitions=1, processes=None, argument_order=None, 
-             ignore_arguments=None, cachedir=None, manage_seed='auto', **kwargs):
+             ignore_arguments=None, cachedir=None, manage_seed='auto', verbose=False,
+             **kwargs):
     """
     Evaluates the real-valued function f using the given keyword arguments. 
     Usually, one or more of the arguments are iterables (for instance a list of 
@@ -156,6 +157,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
                                   experiment_function=experiment_function,
                                   cachedir=cachedir,
                                   manage_seed=manage_seed,
+                                  verbose=verbose,
                                   **fkwargs)
     
     # number of parallel processes
@@ -208,7 +210,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
 
 
 
-def _f_wrapper(args, iter_arg_names, experiment_function, manage_seed, cachedir=None, **kwargs):
+def _f_wrapper(args, iter_arg_names, experiment_function, manage_seed, cachedir=None, verbose=False, **kwargs):
     """
     [Intended for internal use only] A simple wrapper for the experiment 
     function that allows having specific arguments ('iter_args') as the first 
@@ -250,16 +252,18 @@ def _f_wrapper(args, iter_arg_names, experiment_function, manage_seed, cachedir=
        
     # replace seed for repeating experiments
     used_seed = kwargs.get('seed', None)
+    repetition_index = args[-1]     
     if manage_seed == 'no':
         pass
     elif manage_seed == 'auto':
-        repetition_index = args[-1]     
         if kwargs.get('seed', None) is not None and repetition_index > 0:
             unique_seed = hash(frozenset(kwargs.items() + [('repetition_index', repetition_index)])) % np.iinfo(np.uint32).max
             kwargs['seed'] = unique_seed
         used_seed = kwargs.get('seed', None)
+    elif manage_seed == 'repetition_index':
+        used_seed += repetition_index
+        kwargs['seed'] = used_seed
     elif manage_seed == 'external':
-        repetition_index = args[-1]     
         kwargs['seed'] = used_seed
         kwargs['repetition_index'] = repetition_index
     else:
@@ -278,7 +282,7 @@ def _f_wrapper(args, iter_arg_names, experiment_function, manage_seed, cachedir=
     
     # execute experiment
     try:
-        result, elapsed_time = f_wrapper_cached(wrapped_func=experiment_function, wrapped_hash=exp_func_hash, **kwargs)
+        result, elapsed_time = f_wrapper_cached(wrapped_func=experiment_function, wrapped_hash=exp_func_hash, verbose=verbose, **kwargs)
     except Exception as e:
         sys.stderr.write(traceback.format_exc())
         raise e
@@ -286,7 +290,7 @@ def _f_wrapper(args, iter_arg_names, experiment_function, manage_seed, cachedir=
 
 
 
-def _f_wrapper_timed(wrapped_func, wrapped_hash, **kwargs):
+def _f_wrapper_timed(wrapped_func, wrapped_hash, verbose=False, **kwargs):
     """
     [Intended for internal use only] A simple wrapper that executes 
     `wrapped_func` with the given `kwargs`. The result is returned together with
@@ -307,17 +311,21 @@ def _f_wrapper_timed(wrapped_func, wrapped_hash, **kwargs):
     tuple
         (wrapped_func(**kwargs), elapsed_time)
     """
+    if verbose:
+        print('ExPlot: calling %s with %s\n' % (wrapped_func, kwargs))
     dt1 = datetime.datetime.now()
     result = wrapped_func(**kwargs)
     dt2 = datetime.datetime.now()
     elapsed_time = (dt2 - dt1).total_seconds() * 1000
+    if verbose:
+        print('ExPlot: result for %s with %s: %f\n' % (wrapped_func, kwargs, result))
     return (result, elapsed_time) 
 
 
 
 def plot(experiment_function, repetitions=1, processes=None, argument_order=None, 
          ignore_arguments=None, cachedir=None, manage_seed='auto', plot_elapsed_time=False, 
-         show_plot=True, save_plot_path=None, **kwargs):
+         show_plot=True, save_plot_path=None, verbose=False, **kwargs):
     """
     Plots the real-valued function f using the given keyword arguments. At least
     one of the arguments must be an iterable (for instance a list of integers), 
@@ -389,6 +397,7 @@ def plot(experiment_function, repetitions=1, processes=None, argument_order=None
                       ignore_arguments=ignore_arguments,
                       cachedir=cachedir,
                       manage_seed=manage_seed, 
+                      verbose=verbose,
                       **kwargs)
     if result is None:
         return
