@@ -95,7 +95,7 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
     cachedir : str, optional
         If a cache directory is given, joblib.Memory is used to cache the
         results of experiments in that directory.
-    manage_seed : {'auto', 'no', 'external'}, optional
+    manage_seed : {'auto', 'no', 'external', 'repetition_index'}, optional
         When set to 'auto' (default), ExPlot will replace the seed value through 
         a unique one, depending on the given one, the `experiment_function`'s 
         arguments and the current repetition. Otherwise all repetitions would 
@@ -106,6 +106,8 @@ def evaluate(experiment_function, repetitions=1, processes=None, argument_order=
         When set to 'external', seed is not modified but `experiment_function`
         is provided with an additional argument `repetition_index` to enable more
         fine-grained caching mechanisms inside `experiment_function`.
+        With 'repetition_index', the current repetition_index is added to the
+        seed value.
     kwargs : dict, optional
         Keyword arguments passed to function `experiment_function`. If a `seed`
         argument is given and the experiment is repeated more than once, the
